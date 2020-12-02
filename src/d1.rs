@@ -13,8 +13,6 @@ pub fn solve(input: &str) -> Option<i64> {
 pub fn solve2(input: &str) -> Option<i64> {
   let numbers = parse(input);
 
-  // do a brute-force pass to find 3 numbers instead of 2,
-  // using optimized solution for 2 numbers internally.
   for z in numbers.iter() {
     if let Some((x, y)) = find_complement(&numbers, *z) {
       return Some(x * y * z);
