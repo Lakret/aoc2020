@@ -7,13 +7,16 @@ use rustyline::Editor;
 
 mod d1;
 mod d2;
+mod d3;
 
 type Solver = fn(&str) -> Option<i64>;
-const COMMANDS: [(&'static str, Solver); 4] = [
+const COMMANDS: [(&'static str, Solver); 6] = [
   ("d1", d1::solve),
   ("d1_2", d1::solve2),
   ("d2", d2::solve),
   ("d2_2", d2::solve2),
+  ("d3", d3::solve),
+  ("d3_2", d3::solve2),
 ];
 
 fn parse_line(line: &str) -> Option<(&str, &str)> {
