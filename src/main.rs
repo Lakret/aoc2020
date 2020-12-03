@@ -9,8 +9,12 @@ mod d1;
 mod d2;
 
 type Solver = fn(&str) -> Option<i64>;
-const COMMANDS: [(&'static str, Solver); 3] =
-  [("d1", d1::solve), ("d1_2", d1::solve2), ("d2", d2::solve)];
+const COMMANDS: [(&'static str, Solver); 4] = [
+  ("d1", d1::solve),
+  ("d1_2", d1::solve2),
+  ("d2", d2::solve),
+  ("d2_2", d2::solve2),
+];
 
 fn parse_line(line: &str) -> Option<(&str, &str)> {
   let items = line.split_ascii_whitespace().collect::<Vec<_>>();

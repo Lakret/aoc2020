@@ -10,6 +10,16 @@ pub fn solve(input: &str) -> Option<i64> {
   Some(valid_count as i64)
 }
 
+pub fn solve2(input: &str) -> Option<i64> {
+  let passwords = parse(input);
+  let valid_count = passwords
+    .into_iter()
+    .filter(|password| password.is_valid2())
+    .count();
+
+  Some(valid_count as i64)
+}
+
 #[derive(Debug, PartialEq, Eq)]
 struct Password {
   policy: Policy,
@@ -26,6 +36,23 @@ impl Password {
 
     policy_letter_count >= self.policy.min
       && policy_letter_count <= self.policy.max
+  }
+
+  pub fn is_valid2(&self) -> bool {
+    let password_chars = self.password.chars().collect::<Vec<_>>();
+    if let (Some(first), Some(second)) = (
+      password_chars.get(self.policy.min - 1),
+      password_chars.get(self.policy.max - 1),
+    ) {
+      let first_matches = *first == self.policy.letter;
+      let second_matches = *second == self.policy.letter;
+
+      // a xor b = (a and not b) or (not a and b)
+      return (first_matches && !second_matches)
+        || (!first_matches && second_matches);
+    }
+
+    false
   }
 }
 
@@ -111,5 +138,11 @@ mod tests {
   fn part_one_solved() {
     let input = fs::read_to_string("inputs/d2").expect("can read day 2 input");
     assert_eq!(solve(&input), Some(538));
+  }
+
+  #[test]
+  fn part_two_solved() {
+    let input = fs::read_to_string("inputs/d2").expect("can read day 2 input");
+    assert_eq!(solve2(&input), Some(489));
   }
 }
