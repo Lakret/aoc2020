@@ -6,10 +6,11 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 mod d1;
+mod d2;
 
 type Solver = fn(&str) -> Option<i64>;
-const COMMANDS: [(&'static str, Solver); 2] =
-  [("d1", d1::solve), ("d1_2", d1::solve2)];
+const COMMANDS: [(&'static str, Solver); 3] =
+  [("d1", d1::solve), ("d1_2", d1::solve2), ("d2", d2::solve)];
 
 fn parse_line(line: &str) -> Option<(&str, &str)> {
   let items = line.split_ascii_whitespace().collect::<Vec<_>>();
