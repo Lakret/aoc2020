@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 rustyline = "7.0.0"
 regex = "*"
+lazy_static = "1.4.0"

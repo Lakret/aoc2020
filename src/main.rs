@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -8,15 +11,18 @@ use rustyline::Editor;
 mod d1;
 mod d2;
 mod d3;
+mod d4;
 
 type Solver = fn(&str) -> Option<i64>;
-const COMMANDS: [(&'static str, Solver); 6] = [
+const COMMANDS: [(&'static str, Solver); 8] = [
   ("d1", d1::solve),
   ("d1_2", d1::solve2),
   ("d2", d2::solve),
   ("d2_2", d2::solve2),
   ("d3", d3::solve),
   ("d3_2", d3::solve2),
+  ("d4", d4::solve),
+  ("d4_2", d4::solve2),
 ];
 
 fn parse_line(line: &str) -> Option<(&str, &str)> {
