@@ -36,8 +36,8 @@ fn parse(input: &str) -> Vec<HashMap<String, String>> {
     .collect::<Vec<_>>()
 }
 
-fn is_valid(password: &HashMap<String, String>) -> bool {
-  let keys = password.keys().collect::<HashSet<_>>();
+fn is_valid(passport: &HashMap<String, String>) -> bool {
+  let keys = passport.keys().collect::<HashSet<_>>();
 
   let required = vec!["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"];
   required
