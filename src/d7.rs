@@ -60,13 +60,12 @@ fn transitive_closure_inner(
     if !checked.contains(*color) {
       checked.insert(color.to_string());
 
-      match contained_in.get(*color) {
-        Some(colors) => transitive_closure_inner(
+      if let Some(colors) = contained_in.get(*color) {
+        transitive_closure_inner(
           contained_in,
           checked,
           colors.iter().collect::<Vec<_>>(),
-        ),
-        None => (),
+        );
       }
     }
   }
