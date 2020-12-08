@@ -15,9 +15,10 @@ mod d4;
 mod d5;
 mod d6;
 mod d7;
+mod d8;
 
 type Solver = fn(&str) -> Option<i64>;
-const COMMANDS: [(&'static str, Solver); 14] = [
+const COMMANDS: [(&'static str, Solver); 16] = [
   ("d1", d1::solve),
   ("d1_2", d1::solve2),
   ("d2", d2::solve),
@@ -32,6 +33,8 @@ const COMMANDS: [(&'static str, Solver); 14] = [
   ("d6_2", d6::solve2),
   ("d7", d7::solve),
   ("d7_2", d7::solve2),
+  ("d8", d8::solve),
+  ("d8_2", d8::solve2),
 ];
 
 fn parse_line(line: &str) -> Option<(&str, &str)> {
