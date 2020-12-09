@@ -17,7 +17,7 @@ pub fn solve2(input: &str) -> Option<i64> {
     .get(&"shiny gold".to_string())
     .unwrap()
     .iter()
-    .flat_map(|contained| contained_to_n_strings(contained))
+    .flat_map(|contained| to_n_strings(contained))
     .collect::<Vec<_>>();
   let mut count = 0;
 
@@ -26,7 +26,7 @@ pub fn solve2(input: &str) -> Option<i64> {
 
     if let Some(all_contained) = rules.inner.get(&color) {
       for contained in all_contained.iter() {
-        let mut items = contained_to_n_strings(contained);
+        let mut items = to_n_strings(contained);
         to_satisfy.append(&mut items);
       }
     }
@@ -35,7 +35,7 @@ pub fn solve2(input: &str) -> Option<i64> {
   Some(count)
 }
 
-fn contained_to_n_strings(contained: &Contained) -> Vec<String> {
+fn to_n_strings(contained: &Contained) -> Vec<String> {
   vec![contained.color.to_string(); contained.count]
 }
 
