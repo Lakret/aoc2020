@@ -4,8 +4,7 @@ use std::hash::Hash;
 
 pub fn solve(input: &str) -> Option<i64> {
   let contained_in = Rules::parse(input).contained_in();
-  let can_contain_shiny_gold =
-    transitive_closure(&contained_in, &"shiny gold".to_string());
+  let can_contain_shiny_gold = transitive_closure(&contained_in, &"shiny gold".to_string());
 
   Some(can_contain_shiny_gold.len() as i64)
 }
@@ -40,10 +39,7 @@ fn contained_to_n_strings(contained: &Contained) -> Vec<String> {
   vec![contained.color.to_string(); contained.count]
 }
 
-fn transitive_closure(
-  contained_in: &ContainedIn,
-  color: &Color,
-) -> HashSet<Color> {
+fn transitive_closure(contained_in: &ContainedIn, color: &Color) -> HashSet<Color> {
   let mut checked = HashSet::new();
   transitive_closure_inner(contained_in, &mut checked, vec![color]);
 
@@ -51,21 +47,13 @@ fn transitive_closure(
   checked
 }
 
-fn transitive_closure_inner(
-  contained_in: &ContainedIn,
-  checked: &mut HashSet<String>,
-  colors: Vec<&Color>,
-) {
+fn transitive_closure_inner(contained_in: &ContainedIn, checked: &mut HashSet<String>, colors: Vec<&Color>) {
   for color in colors.iter() {
     if !checked.contains(*color) {
       checked.insert(color.to_string());
 
       if let Some(colors) = contained_in.get(*color) {
-        transitive_closure_inner(
-          contained_in,
-          checked,
-          colors.iter().collect::<Vec<_>>(),
-        );
+        transitive_closure_inner(contained_in, checked, colors.iter().collect::<Vec<_>>());
       }
     }
   }
@@ -88,8 +76,7 @@ struct Rules {
 impl Rules {
   fn parse(input: &str) -> Rules {
     lazy_static! {
-      static ref RE: Regex =
-        Regex::new(r"(?P<count>\d+) (?P<color>.*) (bags|bag)\.?").unwrap();
+      static ref RE: Regex = Regex::new(r"(?P<count>\d+) (?P<color>.*) (bags|bag)\.?").unwrap();
     }
 
     let mut inner = HashMap::new();
@@ -101,16 +88,13 @@ impl Rules {
           } else {
             for rule in rules.split(", ") {
               if let Some(rule) = RE.captures_iter(rule).next() {
-                if let (Some(count), Some(contained_color)) =
-                  (rule.name("count"), rule.name("color"))
-                {
+                if let (Some(count), Some(contained_color)) = (rule.name("count"), rule.name("color")) {
                   let contained = Contained {
                     color: contained_color.as_str().to_string(),
                     count: count.as_str().parse::<usize>().unwrap(),
                   };
 
-                  let all_contained =
-                    inner.entry(color.to_string()).or_insert(vec![]);
+                  let all_contained = inner.entry(color.to_string()).or_insert(vec![]);
                   all_contained.push(contained);
                 }
               }
