@@ -40,6 +40,17 @@ pub fn solve2(input: &str) -> Option<i64> {
   None
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Machine {
+  acc: i64,
+  program: Vec<Instr>,
+  ip: i64,
+  trace: Vec<i64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
+struct Instr(Op, i64);
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
 enum Op {
   Acc,
@@ -56,17 +67,6 @@ impl Op {
       _ => panic!("unexpected op: {}", input),
     }
   }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Copy)]
-struct Instr(Op, i64);
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct Machine {
-  acc: i64,
-  program: Vec<Instr>,
-  ip: i64,
-  trace: Vec<i64>,
 }
 
 impl Machine {
@@ -104,12 +104,10 @@ impl Machine {
       let Instr(op, arg) = self.program[self.ip as usize];
       match op {
         Nop => self.ip += 1,
+        Jmp => self.ip += arg,
         Acc => {
           self.acc += arg;
           self.ip += 1;
-        }
-        Jmp => {
-          self.ip += arg;
         }
       }
     }

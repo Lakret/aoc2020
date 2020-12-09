@@ -3,7 +3,9 @@ extern crate lazy_static;
 
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use std::time::Instant;
 
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
@@ -37,25 +39,52 @@ const COMMANDS: [(&'static str, Solver); 16] = [
   ("d8_2", d8::solve2),
 ];
 
-fn parse_line(line: &str) -> Option<(&str, &str)> {
+fn parse_line(line: &str) -> Option<(&str, PathBuf)> {
   let items = line.split_ascii_whitespace().collect::<Vec<_>>();
   match &items[..] {
     // Default case for each day is to use its input file
-    &[day] => day
-      // ignore the task part to get the filename
-      .split("_")
-      .take(1)
-      .next()
-      .map(|input_file| (day, input_file)),
-    &[day, input_file] => Some((day, input_file)),
+    &[day] => task_name_to_default_input_path(day).map(|input_file| (day, input_file)),
+    &[day, input_file] => Some((day, Path::new("inputs").join(input_file))),
     _ => None,
+  }
+}
+
+fn solver_name_to_default_input_path(solver_name: &str) -> Option<PathBuf> {
+  COMMANDS
+    .iter()
+    .find(|(name, _solver)| *name == solver_name)
+    .and_then(|(name, _solver)| task_name_to_default_input_path(name))
+}
+
+fn task_name_to_default_input_path(task_name: &str) -> Option<PathBuf> {
+  task_name
+    // ignore the task part to get the filename
+    .split("_")
+    .take(1)
+    .next()
+    .map(|path| Path::new("inputs").join(path))
+}
+
+fn run_command<P>(solver: &Solver, input_file: P)
+where
+  P: AsRef<Path> + std::fmt::Debug,
+{
+  match fs::read_to_string(&input_file) {
+    Ok(input) => {
+      let now = Instant::now();
+
+      let result = solver(&input);
+      println!("{:?}", result);
+
+      println!("Elapsed: {:?}.", now.elapsed());
+    }
+    Err(error) => println!("Cannot read input file {:?} due to {:?}.", &input_file, error),
   }
 }
 
 fn main() {
   let mut rl = Editor::<()>::new();
-  let commands: HashMap<&'static str, Solver> =
-    COMMANDS.iter().cloned().collect();
+  let commands: HashMap<&'static str, Solver> = COMMANDS.iter().cloned().collect();
 
   loop {
     let readline = rl.readline(">>> ");
@@ -64,37 +93,27 @@ fn main() {
       Ok(line) => {
         rl.add_history_entry(line.as_str());
 
-        if let Some((solver, input_file)) = parse_line(&line) {
-          let input_file = Path::new("inputs").join(input_file);
-
+        if &line == "all" {
+          for (name, solver) in COMMANDS.iter() {
+            if let Some(input_file) = solver_name_to_default_input_path(name) {
+              run_command(solver, input_file);
+            }
+          }
+        } else if let Some((solver, input_file)) = parse_line(&line) {
           match commands.get(solver) {
             None => println!("Unrecoginzed command: {:?}.", &line),
-            Some(solver) => match fs::read_to_string(&input_file) {
-              Ok(input) => {
-                let result = solver(&input);
-                println!("{:?}", result);
-              }
-              Err(error) => println!(
-                "Cannot read input file {:?} due to {:?}.",
-                &input_file, error
-              ),
-            },
+            Some(solver) => run_command(solver, input_file),
           }
         }
       }
 
-      Err(ReadlineError::Interrupted) => {
-        println!("CTRL-C");
-        break;
-      }
+      Err(error) => {
+        match error {
+          ReadlineError::Interrupted => println!("CTRL-C"),
+          ReadlineError::Eof => println!("CTRL-D"),
+          _ => println!("Error: {:?}", error),
+        }
 
-      Err(ReadlineError::Eof) => {
-        println!("CTRL-D");
-        break;
-      }
-
-      Err(err) => {
-        println!("Error: {:?}", err);
         break;
       }
     }
