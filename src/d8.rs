@@ -16,25 +16,29 @@ pub fn solve2(input: &str) -> Option<i64> {
   for (idx, Instr(op, arg)) in machine.program.iter().enumerate() {
     match op {
       Nop => {
-        let mut new_machine = machine.clone();
-        new_machine.program[idx] = Instr(Jmp, *arg);
-
-        new_machine.run_till_repetition();
-        if new_machine.terminated() {
-          return Some(new_machine.acc);
+        if let Some(acc) = try_to_run_with_replaced_instr(&machine, idx, Instr(Jmp, *arg)) {
+          return Some(acc);
         }
       }
       Jmp => {
-        let mut new_machine = machine.clone();
-        new_machine.program[idx] = Instr(Nop, *arg);
-
-        new_machine.run_till_repetition();
-        if new_machine.terminated() {
-          return Some(new_machine.acc);
+        if let Some(acc) = try_to_run_with_replaced_instr(&machine, idx, Instr(Nop, *arg)) {
+          return Some(acc);
         }
       }
       _ => (),
     }
+  }
+
+  None
+}
+
+fn try_to_run_with_replaced_instr(machine: &Machine, idx: usize, instr: Instr) -> Option<i64> {
+  let mut new_machine = machine.clone();
+  new_machine.program[idx] = instr;
+
+  new_machine.run_till_repetition();
+  if new_machine.terminated() {
+    return Some(new_machine.acc);
   }
 
   None
