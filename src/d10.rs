@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 pub fn solve(input: &str) -> Option<i64> {
   let adapters = parse(input);
@@ -13,31 +13,36 @@ pub fn solve(input: &str) -> Option<i64> {
 pub fn solve2(input: &str) -> Option<i64> {
   let adapters = parse(input);
   let differences = jolt_differences(adapters);
-  let mut arrangement_without_start = reconstruct_arrangement(&differences);
+
+  // arrangement is adapters joltages together with (0) and (device), sorted
   let mut arrangement = vec![0];
-  arrangement.append(&mut arrangement_without_start);
+  differences.iter().fold(0, |current, jolts| {
+    let current = current + *jolts;
+    arrangement.push(current);
+    current
+  });
 
-  let subproblems = split_non_overlapping(&arrangement);
+  let total_count = split_non_overlapping(&arrangement)
+    .into_iter()
+    .fold(1, |acc, problem| acc * count_arrangements(&problem));
 
-  let mut total = 1;
-  for subproblem in subproblems.into_iter() {
-    let mut counts = HashMap::new();
-    count_arrangements(&mut counts, &subproblem);
-    total *= counts.keys().len() as i64;
-  }
-
-  Some(total)
+  Some(total_count as i64)
 }
 
-fn split_non_overlapping(init: &Vec<u64>) -> Vec<Vec<u64>> {
+// Splits `arrangement` into non-overlapping subproblems
+// using non-removable numbers as edges.
+// E.g., input `(0), 1, 4, 5, 6, 7, 10, 11, 12, 15, 16, 19, (22)`
+// has the following [non-removables]:
+// `[(0)], [1], [4], 5, 6, [7], [10], 11, [12], [15], [16], [19], [(22)]`,
+// thus this function will return the following subproblems for it:
+// `[4], 5, 6, [7]` and `[10], 11, [12]`.
+fn split_non_overlapping(arrangement: &Vec<u64>) -> Vec<Vec<u64>> {
   let mut v = vec![];
   let mut prev_idx = 0;
 
-  let mut non_removables = non_removable(init);
-  non_removables.sort();
-  for (idx, _num) in non_removables {
+  for idx in non_removable(arrangement) {
     if idx - prev_idx > 1 {
-      let chunk = init[prev_idx..=idx].into_iter().cloned().collect::<Vec<_>>();
+      let chunk = arrangement[prev_idx..=idx].into_iter().cloned().collect::<Vec<_>>();
       v.push(chunk);
     }
 
@@ -47,71 +52,51 @@ fn split_non_overlapping(init: &Vec<u64>) -> Vec<Vec<u64>> {
   v
 }
 
-fn non_removable(init: &Vec<u64>) -> Vec<(usize, u64)> {
-  let mut v = vec![(0, init[0]), (init.len() - 1, *init.last().unwrap())];
+// Returns sorted indices of non-removable adapters.
+fn non_removable(init: &Vec<u64>) -> Vec<usize> {
+  let mut v = vec![0, init.len() - 1];
 
   for (idx, num) in init.iter().enumerate() {
-    if !v.contains(&(idx, *num)) {
-      if num - init[idx - 1] == 3 {
-        v.push((idx, *num));
-      }
-
-      if init[idx + 1] - num == 3 {
-        v.push((idx, *num));
+    if !v.contains(&idx) {
+      if num - init[idx - 1] == 3 || init[idx + 1] - num == 3 {
+        v.push(idx);
       }
     }
   }
 
+  v.sort();
   v
 }
 
-// TODO: refactor to be a simple hashset to count arrangmeents, since counts are not correct
-fn count_arrangements(counts: &mut HashMap<Vec<u64>, u64>, init: &Vec<u64>) -> u64 {
-  match counts.get(init) {
-    Some(x) => *x,
-    None => {
-      let mut local_counts = vec![];
+fn count_arrangements(problem: &Vec<u64>) -> usize {
+  let mut counts = HashSet::new();
+  count_arrangements_inner(&mut counts, problem);
+  counts.len()
+}
 
-      for (idx, _num) in init.iter().enumerate() {
-        if idx != 0 && idx != init.len() - 1 {
-          if init[idx + 1] - init[idx - 1] <= 3 {
-            let mut arrangement = init.clone();
-            arrangement.remove(idx);
+fn count_arrangements_inner(counts: &mut HashSet<Vec<u64>>, problem: &Vec<u64>) {
+  if !counts.contains(problem) {
+    counts.insert(problem.clone());
 
-            let derived_count = count_arrangements(counts, &arrangement);
-            if !counts.contains_key(&arrangement) {
-              counts.insert(arrangement, derived_count);
-            }
+    for idx in 0..(problem.len() - 1) {
+      if idx != 0 && idx != problem.len() - 1 {
+        if problem[idx + 1] - problem[idx - 1] <= 3 {
+          let mut arrangement = problem.clone();
+          arrangement.remove(idx);
 
-            local_counts.push(derived_count)
-          }
+          count_arrangements_inner(counts, &arrangement);
         }
       }
-
-      let result = local_counts.iter().sum();
-      counts.insert(init.clone(), result + 1);
-      result
     }
   }
 }
+
 fn parse(input: &str) -> Vec<u64> {
   input
     .trim_end()
     .split('\n')
     .map(|line| line.parse::<u64>().unwrap())
     .collect()
-}
-
-fn reconstruct_arrangement(jolt_differences: &Vec<u64>) -> Vec<u64> {
-  let mut result = vec![];
-
-  jolt_differences.iter().fold(0, |current, jolts| {
-    let current = current + *jolts;
-    result.push(current);
-    current
-  });
-
-  result
 }
 
 fn jolt_differences(adapters: Vec<u64>) -> Vec<u64> {
