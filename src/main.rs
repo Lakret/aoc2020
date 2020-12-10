@@ -11,6 +11,7 @@ use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
 mod d1;
+mod d10;
 mod d2;
 mod d3;
 mod d4;
@@ -18,9 +19,10 @@ mod d5;
 mod d6;
 mod d7;
 mod d8;
+mod d9;
 
 type Solver = fn(&str) -> Option<i64>;
-const COMMANDS: [(&'static str, Solver); 16] = [
+const COMMANDS: [(&'static str, Solver); 20] = [
   ("d1", d1::solve),
   ("d1_2", d1::solve2),
   ("d2", d2::solve),
@@ -37,6 +39,10 @@ const COMMANDS: [(&'static str, Solver); 16] = [
   ("d7_2", d7::solve2),
   ("d8", d8::solve),
   ("d8_2", d8::solve2),
+  ("d9", d9::solve),
+  ("d9_2", d9::solve2),
+  ("d10", d10::solve),
+  ("d10_2", d10::solve2),
 ];
 
 fn parse_line(line: &str) -> Option<(&str, PathBuf)> {
