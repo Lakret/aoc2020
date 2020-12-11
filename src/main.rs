@@ -12,6 +12,7 @@ use rustyline::Editor;
 
 mod d1;
 mod d10;
+mod d11;
 mod d2;
 mod d3;
 mod d4;
@@ -22,7 +23,7 @@ mod d8;
 mod d9;
 
 type Solver = fn(&str) -> Option<i64>;
-const COMMANDS: [(&'static str, Solver); 20] = [
+const COMMANDS: [(&'static str, Solver); 24] = [
   ("d1", d1::solve),
   ("d1_2", d1::solve2),
   ("d2", d2::solve),
@@ -43,6 +44,10 @@ const COMMANDS: [(&'static str, Solver); 20] = [
   ("d9_2", d9::solve2),
   ("d10", d10::solve),
   ("d10_2", d10::solve2),
+  ("d11", d11::solve),
+  ("d11_2", d11::solve2),
+  ("d11_debug", d11::solve_debug),
+  ("d11_2_debug", d11::solve2_debug),
 ];
 
 fn parse_line(line: &str) -> Option<(&str, PathBuf)> {
@@ -101,8 +106,12 @@ fn main() {
 
         if &line == "all" {
           for (name, solver) in COMMANDS.iter() {
-            if let Some(input_file) = solver_name_to_default_input_path(name) {
-              run_command(solver, input_file);
+            if !name.contains("debug") {
+              if let Some(input_file) = solver_name_to_default_input_path(name) {
+                println!("Running {}", name);
+                run_command(solver, input_file);
+                println!();
+              }
             }
           }
         } else if let Some((solver, input_file)) = parse_line(&line) {
