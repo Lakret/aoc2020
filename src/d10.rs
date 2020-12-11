@@ -23,8 +23,8 @@ pub fn solve2(input: &str) -> Option<i64> {
   });
 
   let total_count = split_non_overlapping(&arrangement)
-    .into_iter()
-    .fold(1, |acc, problem| acc * count_arrangements(&problem));
+    .iter()
+    .fold(1, |acc, problem| acc * count_arrangements(problem));
 
   Some(total_count as i64)
 }
