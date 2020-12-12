@@ -26,7 +26,7 @@ fn solve_with_debug(input: &str, debug: bool) -> Option<i64> {
 
   while prev_layout.is_none() || layout != prev_layout.unwrap() {
     prev_layout = Some(layout.clone());
-    layout = layout.advance();
+    layout = layout.advance(transition);
 
     if debug {
       layout.print();
@@ -34,6 +34,28 @@ fn solve_with_debug(input: &str, debug: bool) -> Option<i64> {
   }
 
   Some(layout.cells.values().filter(|cell| **cell == Occupied).count() as i64)
+}
+
+fn transition(layout: &Layout, coords: Coords, cell: &Cell) -> Cell {
+  let occupied_neigbhors = layout.occupied_neighbors(coords);
+
+  match cell {
+    Floor => Floor,
+    Empty => {
+      if occupied_neigbhors == 0 {
+        Occupied
+      } else {
+        Empty
+      }
+    }
+    Occupied => {
+      if occupied_neigbhors >= 4 {
+        Empty
+      } else {
+        Occupied
+      }
+    }
+  }
 }
 
 fn solve2_with_debug(input: &str, debug: bool) -> Option<i64> {
@@ -46,7 +68,7 @@ fn solve2_with_debug(input: &str, debug: bool) -> Option<i64> {
 
   while prev_layout.is_none() || layout != prev_layout.unwrap() {
     prev_layout = Some(layout.clone());
-    layout = layout.advance2();
+    layout = layout.advance(transition2);
 
     if debug {
       layout.print();
@@ -54,6 +76,28 @@ fn solve2_with_debug(input: &str, debug: bool) -> Option<i64> {
   }
 
   Some(layout.cells.values().filter(|cell| **cell == Occupied).count() as i64)
+}
+
+fn transition2(layout: &Layout, coords: Coords, cell: &Cell) -> Cell {
+  let occupied_neigbhors = layout.visible_occupied_neighbors(coords);
+
+  match cell {
+    Floor => Floor,
+    Empty => {
+      if occupied_neigbhors == 0 {
+        Occupied
+      } else {
+        Empty
+      }
+    }
+    Occupied => {
+      if occupied_neigbhors >= 5 {
+        Empty
+      } else {
+        Occupied
+      }
+    }
+  }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -64,16 +108,6 @@ enum Cell {
 }
 
 type Coords = (usize, usize);
-
-// #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-// struct Coords2 {
-//   row: usize,
-//   col: usize,
-// }
-
-// impl Coords2 {
-
-// }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 struct Layout {
@@ -116,38 +150,19 @@ impl Layout {
     }
   }
 
-  // If a seat is empty (L) and there are no occupied seats adjacent to it,
-  // the seat becomes occupied.
-  // If a seat is occupied (#) and four or more seats adjacent to it are also occupied,
-  // the seat becomes empty.
-  // Otherwise, the seat's state does not change.
-  fn advance(&self) -> Layout {
+  fn advance<F>(&self, transition: F) -> Layout
+  where
+    F: Fn(&Layout, Coords, &Cell) -> Cell,
+  {
     let mut new_layout = Layout::new(self.width, self.height);
 
     for row_idx in 0..self.height {
       for col_idx in 0..self.width {
         let coords = (row_idx, col_idx);
-        let seat = self.cells.get(&coords).unwrap();
+        let cell = self.cells.get(&coords).unwrap();
 
-        match seat {
-          Floor => {
-            new_layout.cells.insert(coords, Floor);
-          }
-          Empty => {
-            if self.occupied_neighbors(coords) == 0 {
-              new_layout.cells.insert(coords, Occupied);
-            } else {
-              new_layout.cells.insert(coords, Empty);
-            }
-          }
-          Occupied => {
-            if self.occupied_neighbors(coords) >= 4 {
-              new_layout.cells.insert(coords, Empty);
-            } else {
-              new_layout.cells.insert(coords, Occupied);
-            }
-          }
-        }
+        let new_cell = transition(self, coords, cell);
+        new_layout.cells.insert(coords, new_cell);
       }
     }
 
@@ -156,6 +171,7 @@ impl Layout {
 
   fn occupied_neighbors(&self, (row_idx, col_idx): Coords) -> usize {
     let deltas = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)];
+
     deltas
       .iter()
       .map(|(row_delta, col_delta)| (row_idx as i32 + row_delta, col_idx as i32 + col_delta))
@@ -170,64 +186,29 @@ impl Layout {
       .count()
   }
 
-  fn advance2(&self) -> Layout {
-    let mut new_layout = Layout::new(self.width, self.height);
-
-    for row_idx in 0..self.height {
-      for col_idx in 0..self.width {
-        let coords = (row_idx, col_idx);
-        let seat = self.cells.get(&coords).unwrap();
-
-        match seat {
-          Floor => {
-            new_layout.cells.insert(coords, Floor);
-          }
-          Empty => {
-            if self.visible_occupied_neighbors(coords) == 0 {
-              new_layout.cells.insert(coords, Occupied);
-            } else {
-              new_layout.cells.insert(coords, Empty);
-            }
-          }
-          Occupied => {
-            if self.visible_occupied_neighbors(coords) >= 5 {
-              new_layout.cells.insert(coords, Empty);
-            } else {
-              new_layout.cells.insert(coords, Occupied);
-            }
-          }
-        }
-      }
-    }
-
-    new_layout
-  }
-
   fn visible_occupied_neighbors(&self, coords: Coords) -> usize {
     let deltas = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)];
 
     let mut count = 0;
     for delta in deltas.iter() {
-      let mut stop = false;
       let mut n = 1;
 
-      while !stop {
+      loop {
         match self.delta_n(coords, delta, n) {
-          None => stop = true,
           Some(visible_coords) => {
             match self.cells.get(&visible_coords) {
-              None => stop = true,
               Some(Occupied) => {
                 count += 1;
-                stop = true;
+                break;
               }
-              Some(Empty) => {
-                stop = true;
-              }
+              Some(Empty) => break,
+              None => break,
               _ => (),
             }
+
             n += 1;
           }
+          None => break,
         }
       }
     }
