@@ -20,7 +20,8 @@ macro_rules! count {
 /// This macro defines passed modules, and corresponding
 /// `module_name` and `module_name_2` commands for the REPL.
 ///
-/// You can also add custom commands in the `commands` map in `main()` function.
+/// You can also add custom commands in the `commands` map
+/// in the `main()` function.
 macro_rules! commands {
   ($($module:ident),*) => {
      $(mod $module;)*
@@ -31,9 +32,10 @@ macro_rules! commands {
           stringify!($module),
           // Note the cast to  `Box<dyn std::fmt::Debug>` here and below.
           //
-          // This is needed to allow `solve` functions in the day modules to return any
-          // `Option<Box<T>>`, as long as this `T` implements `Debug`;
-          // This prevents errors when calling `assert_eq!` on results of those functions.
+          // This is needed to allow `solve` functions in the day modules
+          // to return any `Option<Box<T>>`, as long as this `T` implements `Debug`;
+          // This prevents errors when calling `assert_eq!` on results
+          // of those functions.
           |input: &str| $module::solve(input).map(|x| (x as Box<dyn std::fmt::Debug>))
         ),
       )*
@@ -48,7 +50,7 @@ macro_rules! commands {
   };
 }
 
-commands!(d01, d02, d03, d04, d05, d06, d07, d08, d09, d10, d11);
+commands!(d01, d02, d03, d04, d05, d06, d07, d08, d09, d10, d11, d12);
 
 fn main() {
   let mut rl = Editor::<()>::new();
