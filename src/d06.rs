@@ -39,25 +39,25 @@ mod tests {
 
   #[test]
   fn part_one_works_with_sample() {
-    let input = fs::read_to_string("inputs/sample6").unwrap();
+    let input = fs::read_to_string("inputs/sample06").unwrap();
     assert_eq!(solve(&input), Some(Box::new(11)));
   }
 
   #[test]
   fn part_two_works_with_sample() {
-    let input = fs::read_to_string("inputs/sample6").unwrap();
+    let input = fs::read_to_string("inputs/sample06").unwrap();
     assert_eq!(solve2(&input), Some(Box::new(6)));
   }
 
   #[test]
   fn part_one_solved() {
-    let input = fs::read_to_string("inputs/d6").unwrap();
+    let input = fs::read_to_string("inputs/d06").unwrap();
     assert_eq!(solve(&input), Some(Box::new(6504)))
   }
 
   #[test]
   fn part_two_solved() {
-    let input = fs::read_to_string("inputs/d6").unwrap();
+    let input = fs::read_to_string("inputs/d06").unwrap();
     assert_eq!(solve2(&input), Some(Box::new(3351)))
   }
 }

@@ -95,7 +95,7 @@ mod tests {
 
   #[test]
   fn parser_works() {
-    let input = fs::read_to_string("inputs/d2").expect("can read day 2 input");
+    let input = fs::read_to_string("inputs/d02").expect("can read day 2 input");
     let passwords = parse(&input);
 
     assert_eq!(
@@ -125,13 +125,13 @@ mod tests {
 
   #[test]
   fn part_one_solved() {
-    let input = fs::read_to_string("inputs/d2").expect("can read day 2 input");
+    let input = fs::read_to_string("inputs/d02").expect("can read day 2 input");
     assert_eq!(solve(&input), Some(Box::new(538)));
   }
 
   #[test]
   fn part_two_solved() {
-    let input = fs::read_to_string("inputs/d2").expect("can read day 2 input");
+    let input = fs::read_to_string("inputs/d02").expect("can read day 2 input");
     assert_eq!(solve2(&input), Some(Box::new(489)));
   }
 }

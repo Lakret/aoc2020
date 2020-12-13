@@ -86,13 +86,13 @@ mod tests {
 
   #[test]
   fn part_one_solved() {
-    let input = fs::read_to_string("inputs/d5").unwrap();
+    let input = fs::read_to_string("inputs/d05").unwrap();
     assert_eq!(solve(&input), Some(Box::new(822)));
   }
 
   #[test]
   fn part_two_solved() {
-    let input = fs::read_to_string("inputs/d5").unwrap();
+    let input = fs::read_to_string("inputs/d05").unwrap();
     assert_eq!(solve2(&input), Some(Box::new(705)));
   }
 }

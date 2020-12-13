@@ -131,25 +131,25 @@ mod tests {
 
   #[test]
   fn part_one_solved() {
-    let sample_input = fs::read_to_string("inputs/sample7").unwrap();
+    let sample_input = fs::read_to_string("inputs/sample07").unwrap();
     assert_eq!(solve(&sample_input), Some(Box::new(4)));
 
-    let puzzle_input = fs::read_to_string("inputs/d7").unwrap();
+    let puzzle_input = fs::read_to_string("inputs/d07").unwrap();
     assert_eq!(solve(&puzzle_input), Some(Box::new(226)));
   }
 
   #[test]
   fn part_two_solved() {
-    let sample_input = fs::read_to_string("inputs/sample7").unwrap();
+    let sample_input = fs::read_to_string("inputs/sample07").unwrap();
     assert_eq!(solve2(&sample_input), Some(Box::new(32)));
 
-    let puzzle_input = fs::read_to_string("inputs/d7").unwrap();
+    let puzzle_input = fs::read_to_string("inputs/d07").unwrap();
     assert_eq!(solve2(&puzzle_input), Some(Box::new(9569)));
   }
 
   #[test]
   fn parser_works() {
-    let sample_input = fs::read_to_string("inputs/sample7").unwrap();
+    let sample_input = fs::read_to_string("inputs/sample07").unwrap();
     let rules = Rules::parse(&sample_input);
 
     assert_eq!(rules.inner.keys().len(), 9);

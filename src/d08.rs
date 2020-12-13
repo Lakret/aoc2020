@@ -143,25 +143,25 @@ mod tests {
 
   #[test]
   fn part_one_solved() {
-    let input = fs::read_to_string("inputs/sample8").unwrap();
+    let input = fs::read_to_string("inputs/sample08").unwrap();
     assert_eq!(solve(&input), Some(Box::new(5)));
 
-    let input = fs::read_to_string("inputs/d8").unwrap();
+    let input = fs::read_to_string("inputs/d08").unwrap();
     assert_eq!(solve(&input), Some(Box::new(1614)));
   }
 
   #[test]
   fn part_two_solved() {
-    let input = fs::read_to_string("inputs/sample8").unwrap();
+    let input = fs::read_to_string("inputs/sample08").unwrap();
     assert_eq!(solve2(&input), Some(Box::new(8)));
 
-    let input = fs::read_to_string("inputs/d8").unwrap();
+    let input = fs::read_to_string("inputs/d08").unwrap();
     assert_eq!(solve2(&input), Some(Box::new(1260)));
   }
 
   #[test]
   fn parser_works() {
-    let input = fs::read_to_string("inputs/sample8").unwrap();
+    let input = fs::read_to_string("inputs/sample08").unwrap();
     let machine = Machine::parse(&input);
 
     assert_eq!(

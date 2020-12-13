@@ -90,7 +90,7 @@ mod tests {
 
   #[test]
   fn parser_works() {
-    let input = fs::read_to_string("inputs/d3").expect("cannot read input for day 3");
+    let input = fs::read_to_string("inputs/d03").expect("cannot read input for day 3");
 
     let parsed = TreeMap::parse(&input);
     assert_eq!(parsed.width, 31);
@@ -110,7 +110,7 @@ mod tests {
 
   #[test]
   fn part_one_solved() {
-    let input = fs::read_to_string("inputs/d3").expect("cannot read input for day 3");
+    let input = fs::read_to_string("inputs/d03").expect("cannot read input for day 3");
 
     let trees_count = solve(&input);
     assert_eq!(trees_count, Some(Box::new(189)));
@@ -118,7 +118,7 @@ mod tests {
 
   #[test]
   fn part_two_solved() {
-    let input = fs::read_to_string("inputs/d3").expect("cannot read input for day 3");
+    let input = fs::read_to_string("inputs/d03").expect("cannot read input for day 3");
 
     let answer = solve2(&input);
     assert_eq!(answer, Some(Box::new(1718180100)));

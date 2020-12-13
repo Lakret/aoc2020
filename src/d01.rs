@@ -70,13 +70,13 @@ mod test {
 
   #[test]
   fn part_one_works() {
-    let input = fs::read_to_string("inputs/d1").unwrap();
+    let input = fs::read_to_string("inputs/d01").unwrap();
     assert_eq!(solve(&input), Some(Box::new(921504)));
   }
 
   #[test]
   fn part_two_works() {
-    let input = fs::read_to_string("inputs/d1").unwrap();
+    let input = fs::read_to_string("inputs/d01").unwrap();
     assert_eq!(solve2(&input), Some(Box::new(195700142)));
   }
 }

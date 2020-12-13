@@ -78,23 +78,23 @@ mod tests {
 
   #[test]
   fn part_one_solved() {
-    let sample_input = fs::read_to_string("inputs/sample9").unwrap();
+    let sample_input = fs::read_to_string("inputs/sample09").unwrap();
     let numbers = parse(&sample_input);
     assert_eq!(first_non_conforming(numbers, 5), Some(127));
 
-    let input = fs::read_to_string("inputs/d9").unwrap();
+    let input = fs::read_to_string("inputs/d09").unwrap();
     assert_eq!(solve(&input), Some(Box::new(248131121)));
   }
 
   #[test]
   fn part_two_solved() {
-    let input = fs::read_to_string("inputs/d9").unwrap();
+    let input = fs::read_to_string("inputs/d09").unwrap();
     assert_eq!(solve2(&input), Some(Box::new(31580383)));
   }
 
   #[test]
   fn parser_works() {
-    let sample_input = fs::read_to_string("inputs/sample9").unwrap();
+    let sample_input = fs::read_to_string("inputs/sample09").unwrap();
     let numbers = parse(&sample_input);
     assert_eq!(numbers[0], 35);
     assert_eq!(numbers.last(), Some(&576));

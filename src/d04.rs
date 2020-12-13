@@ -110,7 +110,7 @@ mod tests {
 
   #[test]
   fn parser_works() {
-    let input = fs::read_to_string("inputs/sample4").unwrap();
+    let input = fs::read_to_string("inputs/sample04").unwrap();
 
     let passport = parse(&input);
     assert_eq!(passport.len(), 4);
@@ -139,13 +139,13 @@ mod tests {
 
   #[test]
   fn part_one_works_on_sample() {
-    let input = fs::read_to_string("inputs/sample4").unwrap();
+    let input = fs::read_to_string("inputs/sample04").unwrap();
     assert_eq!(solve(&input), Some(Box::new(2)));
   }
 
   #[test]
   fn part_one_solved() {
-    let input = fs::read_to_string("inputs/d4").unwrap();
+    let input = fs::read_to_string("inputs/d04").unwrap();
     assert_eq!(solve(&input), Some(Box::new(245)));
   }
 
@@ -223,7 +223,7 @@ pid:3556412378 byr:2007
 
   #[test]
   fn part_two_solved() {
-    let input = fs::read_to_string("inputs/d4").unwrap();
+    let input = fs::read_to_string("inputs/d04").unwrap();
     assert_eq!(solve2(&input), Some(Box::new(133)));
   }
 }
