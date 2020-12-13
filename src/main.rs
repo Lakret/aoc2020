@@ -87,6 +87,8 @@ fn main() {
             "The following commands are defined:\n{}",
             textwrap::fill(&command_names.join(", "), 80)
           );
+        } else if &line == "next" {
+          gen_next_day();
         } else if let Some((solver, input_file)) = parse_line(&line) {
           match commands.get(solver) {
             None => println!("Unrecoginzed command: {:?}.", &line),
@@ -148,5 +150,79 @@ where
       println!("Elapsed: {:?}.", now.elapsed());
     }
     Err(error) => println!("Cannot read input file {:?} due to {:?}.", &input_file, error),
+  }
+}
+
+use regex::Regex;
+
+fn gen_next_day() {
+  lazy_static! {
+    static ref DAY_FILE_NAME: Regex = Regex::new(r"d(?P<number>\d+)\.rs").unwrap();
+    static ref COMMANDS_DAY: Regex = Regex::new(r"(?P<day>d\d+)").unwrap();
+  }
+
+  let prev_day = fs::read_dir("src")
+    .unwrap()
+    .filter_map(|item| match item {
+      Ok(item) => {
+        if item.file_type().unwrap().is_file() {
+          let filename = item.file_name().into_string().unwrap();
+
+          DAY_FILE_NAME.captures_iter(&filename).next().and_then(|capture| {
+            capture
+              .name("number")
+              .and_then(|number| number.as_str().parse::<u32>().ok())
+          })
+        } else {
+          None
+        }
+      }
+      Err(_err) => None,
+    })
+    .max();
+
+  let next_day = match prev_day {
+    Some(prev_day) => prev_day + 1,
+    None => 1,
+  };
+
+  let module_name = format!("d{:02}", next_day);
+
+  println!(
+    "Last time we worked on d{}, generating day {}...",
+    prev_day.unwrap_or(0),
+    &module_name
+  );
+
+  let next_filename = format!("{}.rs", &module_name);
+  let next_path = Path::new("src").join(&next_filename);
+  let next_input_path = Path::new("inputs").join(&module_name);
+
+  let contents = fs::read_to_string("day.template.rs").unwrap();
+  let contents = contents.replace("$day", &module_name);
+
+  match fs::write(&next_path, contents).and_then(|_| fs::write(&next_input_path, "")) {
+    Ok(_) => {
+      let this_path = "src/main.rs";
+      let this_contents = fs::read_to_string(this_path).unwrap();
+
+      match this_contents.split('\n').find(|line| line.starts_with("commands!")) {
+        None => println!("Cannot find commands! invocation, please, adjust manually."),
+        Some(commands_invocation) => {
+          let mut modules = COMMANDS_DAY
+            .captures_iter(commands_invocation)
+            .filter_map(|capture| capture.name("day").map(|c| c.as_str()))
+            .collect::<Vec<_>>();
+          modules.push(&module_name);
+
+          let new_commands_invocation = format!("commands!({});", modules.join(", "));
+          println!("New commands:\n\t{}", &new_commands_invocation);
+          let new_this_content = this_contents.replace(commands_invocation, &new_commands_invocation);
+          fs::write(this_path, new_this_content).unwrap();
+          println!("done.")
+        }
+      }
+    }
+    Err(error) => println!("Failed with {:?}", error),
   }
 }
