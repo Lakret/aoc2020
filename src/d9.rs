@@ -1,16 +1,16 @@
 use std::collections::HashSet;
 
-pub fn solve(input: &str) -> Option<i64> {
+pub fn solve(input: &str) -> Option<Box<u64>> {
   let numbers = parse(input);
-  first_non_conforming(numbers, 25).map(|res| res as i64)
+  first_non_conforming(numbers, 25).map(|res| Box::new(res))
 }
 
-pub fn solve2(input: &str) -> Option<i64> {
+pub fn solve2(input: &str) -> Option<Box<u64>> {
   let weakness = 248131121;
   let numbers = parse(input);
   if let Some(region) = find_contagious_set_of_nums_that_sum_to(numbers, weakness) {
     if let (Some(largest), Some(smallest)) = (region.iter().max(), region.iter().min()) {
-      return Some((largest + smallest) as i64);
+      return Some(Box::new(largest + smallest));
     }
   }
 
@@ -83,13 +83,13 @@ mod tests {
     assert_eq!(first_non_conforming(numbers, 5), Some(127));
 
     let input = fs::read_to_string("inputs/d9").unwrap();
-    assert_eq!(solve(&input), Some(248131121));
+    assert_eq!(solve(&input), Some(Box::new(248131121)));
   }
 
   #[test]
   fn part_two_solved() {
     let input = fs::read_to_string("inputs/d9").unwrap();
-    assert_eq!(solve2(&input), Some(31580383));
+    assert_eq!(solve2(&input), Some(Box::new(31580383)));
   }
 
   #[test]

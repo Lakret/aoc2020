@@ -3,26 +3,26 @@ use std::hash::Hash;
 
 use Op::*;
 
-pub fn solve(input: &str) -> Option<i64> {
+pub fn solve(input: &str) -> Option<Box<i64>> {
   let mut machine = Machine::parse(&input);
   machine.run_till_repetition();
 
-  Some(machine.acc)
+  Some(Box::new(machine.acc))
 }
 
-pub fn solve2(input: &str) -> Option<i64> {
+pub fn solve2(input: &str) -> Option<Box<i64>> {
   let machine = Machine::parse(&input);
 
   for (idx, Instr(op, arg)) in machine.program.iter().enumerate() {
     match op {
       Nop => {
         if let Some(acc) = try_to_run_with_replaced_instr(&machine, idx, Instr(Jmp, *arg)) {
-          return Some(acc);
+          return Some(Box::new(acc));
         }
       }
       Jmp => {
         if let Some(acc) = try_to_run_with_replaced_instr(&machine, idx, Instr(Nop, *arg)) {
-          return Some(acc);
+          return Some(Box::new(acc));
         }
       }
       _ => (),
@@ -144,19 +144,19 @@ mod tests {
   #[test]
   fn part_one_solved() {
     let input = fs::read_to_string("inputs/sample8").unwrap();
-    assert_eq!(solve(&input), Some(5));
+    assert_eq!(solve(&input), Some(Box::new(5)));
 
     let input = fs::read_to_string("inputs/d8").unwrap();
-    assert_eq!(solve(&input), Some(1614));
+    assert_eq!(solve(&input), Some(Box::new(1614)));
   }
 
   #[test]
   fn part_two_solved() {
     let input = fs::read_to_string("inputs/sample8").unwrap();
-    assert_eq!(solve2(&input), Some(8));
+    assert_eq!(solve2(&input), Some(Box::new(8)));
 
     let input = fs::read_to_string("inputs/d8").unwrap();
-    assert_eq!(solve2(&input), Some(1260));
+    assert_eq!(solve2(&input), Some(Box::new(1260)));
   }
 
   #[test]

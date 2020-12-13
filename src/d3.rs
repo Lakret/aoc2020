@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 
-pub fn solve(input: &str) -> Option<i64> {
+pub fn solve(input: &str) -> Option<Box<usize>> {
   let tree_map = TreeMap::parse(input);
   let trees_count = tree_map.tree_count_on_slope(3, 1);
-  Some(trees_count as i64)
+  Some(Box::new(trees_count))
 }
 
-pub fn solve2(input: &str) -> Option<i64> {
+pub fn solve2(input: &str) -> Option<Box<usize>> {
   let tree_map = TreeMap::parse(input);
 
   let slopes = vec![(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)];
@@ -14,7 +14,7 @@ pub fn solve2(input: &str) -> Option<i64> {
     answer * tree_map.tree_count_on_slope(right, down)
   });
 
-  Some(answer as i64)
+  Some(Box::new(answer))
 }
 
 #[derive(Debug)]
@@ -47,11 +47,7 @@ impl TreeMap {
 
     let width = width.expect("empty input is not valid");
     let height = height.expect("empty input is not valid");
-    TreeMap {
-      trees,
-      width,
-      height,
-    }
+    TreeMap { trees, width, height }
   }
 
   pub fn is_tree(&self, (x, y): (usize, usize)) -> bool {
@@ -61,12 +57,7 @@ impl TreeMap {
     self.trees.contains(&(x, y))
   }
 
-  pub fn move_with_slope(
-    &self,
-    (x, y): (usize, usize),
-    right: usize,
-    down: usize,
-  ) -> Option<(usize, usize)> {
+  pub fn move_with_slope(&self, (x, y): (usize, usize), right: usize, down: usize) -> Option<(usize, usize)> {
     let x = x + right;
     let y = y + down;
 
@@ -99,8 +90,7 @@ mod tests {
 
   #[test]
   fn parser_works() {
-    let input =
-      fs::read_to_string("inputs/d3").expect("cannot read input for day 3");
+    let input = fs::read_to_string("inputs/d3").expect("cannot read input for day 3");
 
     let parsed = TreeMap::parse(&input);
     assert_eq!(parsed.width, 31);
@@ -120,19 +110,17 @@ mod tests {
 
   #[test]
   fn part_one_solved() {
-    let input =
-      fs::read_to_string("inputs/d3").expect("cannot read input for day 3");
+    let input = fs::read_to_string("inputs/d3").expect("cannot read input for day 3");
 
     let trees_count = solve(&input);
-    assert_eq!(trees_count, Some(189));
+    assert_eq!(trees_count, Some(Box::new(189)));
   }
 
   #[test]
   fn part_two_solved() {
-    let input =
-      fs::read_to_string("inputs/d3").expect("cannot read input for day 3");
+    let input = fs::read_to_string("inputs/d3").expect("cannot read input for day 3");
 
     let answer = solve2(&input);
-    assert_eq!(answer, Some(1718180100));
+    assert_eq!(answer, Some(Box::new(1718180100)));
   }
 }

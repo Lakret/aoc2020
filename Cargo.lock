@@ -16,6 +16,7 @@ dependencies = [
  "lazy_static",
  "regex",
  "rustyline",
+ "textwrap",
 ]
 
 [[package]]
@@ -247,6 +248,22 @@ name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
+
+[[package]]
+name = "smawk"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1bc737c97d093feb72e67f4926d9b22d717ce8580cd25f0ce86d74e859c466d"
+
+[[package]]
+name = "textwrap"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7aca9e798437265144ddacce09343df0b3413a0aef54b1e212e640e472118b80"
+dependencies = [
+ "smawk",
+ "unicode-width",
+]
 
 [[package]]
 name = "thread_local"

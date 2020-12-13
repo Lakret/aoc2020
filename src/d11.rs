@@ -1,22 +1,22 @@
 use std::collections::HashMap;
 
-pub fn solve(input: &str) -> Option<i64> {
+pub fn solve(input: &str) -> Option<Box<usize>> {
   solve_with_debug(input, false)
 }
 
-pub fn solve_debug(input: &str) -> Option<i64> {
+pub fn solve_debug(input: &str) -> Option<Box<usize>> {
   solve_with_debug(input, true)
 }
 
-pub fn solve2(input: &str) -> Option<i64> {
+pub fn solve2(input: &str) -> Option<Box<usize>> {
   solve2_with_debug(input, false)
 }
 
-pub fn solve2_debug(input: &str) -> Option<i64> {
+pub fn solve2_debug(input: &str) -> Option<Box<usize>> {
   solve2_with_debug(input, true)
 }
 
-fn solve_with_debug(input: &str, debug: bool) -> Option<i64> {
+fn solve_with_debug(input: &str, debug: bool) -> Option<Box<usize>> {
   let mut layout = Layout::parse(input);
   if debug {
     layout.print();
@@ -33,7 +33,9 @@ fn solve_with_debug(input: &str, debug: bool) -> Option<i64> {
     }
   }
 
-  Some(layout.cells.values().filter(|cell| **cell == Occupied).count() as i64)
+  Some(Box::new(
+    layout.cells.values().filter(|cell| **cell == Occupied).count(),
+  ))
 }
 
 fn transition(layout: &Layout, coords: Coords, cell: &Cell) -> Cell {
@@ -58,7 +60,7 @@ fn transition(layout: &Layout, coords: Coords, cell: &Cell) -> Cell {
   }
 }
 
-fn solve2_with_debug(input: &str, debug: bool) -> Option<i64> {
+fn solve2_with_debug(input: &str, debug: bool) -> Option<Box<usize>> {
   let mut layout = Layout::parse(input);
   if debug {
     layout.print();
@@ -75,7 +77,9 @@ fn solve2_with_debug(input: &str, debug: bool) -> Option<i64> {
     }
   }
 
-  Some(layout.cells.values().filter(|cell| **cell == Occupied).count() as i64)
+  Some(Box::new(
+    layout.cells.values().filter(|cell| **cell == Occupied).count(),
+  ))
 }
 
 fn transition2(layout: &Layout, coords: Coords, cell: &Cell) -> Cell {
@@ -273,10 +277,10 @@ mod tests {
   #[test]
   fn part_one_solved() {
     let input = fs::read_to_string("inputs/sample11").unwrap();
-    assert_eq!(solve(&input), Some(37));
+    assert_eq!(solve(&input), Some(Box::new(37)));
 
     let input = fs::read_to_string("inputs/d11").unwrap();
-    assert_eq!(solve(&input), Some(2166));
+    assert_eq!(solve(&input), Some(Box::new(2166)));
   }
 
   #[test]
@@ -313,9 +317,9 @@ mod tests {
   #[test]
   fn part_two_solved() {
     let input = fs::read_to_string("inputs/sample11").unwrap();
-    assert_eq!(solve2(&input), Some(26));
+    assert_eq!(solve2(&input), Some(Box::new(26)));
 
     let input = fs::read_to_string("inputs/d11").unwrap();
-    assert_eq!(solve2(&input), Some(1955));
+    assert_eq!(solve2(&input), Some(Box::new(1955)));
   }
 }

@@ -2,14 +2,14 @@ use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
-pub fn solve(input: &str) -> Option<i64> {
+pub fn solve(input: &str) -> Option<Box<usize>> {
   let contained_in = Rules::parse(input).contained_in();
   let can_contain_shiny_gold = transitive_closure(&contained_in, &"shiny gold".to_string());
 
-  Some(can_contain_shiny_gold.len() as i64)
+  Some(Box::new(can_contain_shiny_gold.len()))
 }
 
-pub fn solve2(input: &str) -> Option<i64> {
+pub fn solve2(input: &str) -> Option<Box<usize>> {
   let rules = Rules::parse(input);
 
   let mut to_satisfy = rules
@@ -32,7 +32,7 @@ pub fn solve2(input: &str) -> Option<i64> {
     }
   }
 
-  Some(count)
+  Some(Box::new(count))
 }
 
 fn to_n_strings(contained: &Contained) -> Vec<String> {
@@ -132,19 +132,19 @@ mod tests {
   #[test]
   fn part_one_solved() {
     let sample_input = fs::read_to_string("inputs/sample7").unwrap();
-    assert_eq!(solve(&sample_input), Some(4));
+    assert_eq!(solve(&sample_input), Some(Box::new(4)));
 
     let puzzle_input = fs::read_to_string("inputs/d7").unwrap();
-    assert_eq!(solve(&puzzle_input), Some(226));
+    assert_eq!(solve(&puzzle_input), Some(Box::new(226)));
   }
 
   #[test]
   fn part_two_solved() {
     let sample_input = fs::read_to_string("inputs/sample7").unwrap();
-    assert_eq!(solve2(&sample_input), Some(32));
+    assert_eq!(solve2(&sample_input), Some(Box::new(32)));
 
     let puzzle_input = fs::read_to_string("inputs/d7").unwrap();
-    assert_eq!(solve2(&puzzle_input), Some(9569));
+    assert_eq!(solve2(&puzzle_input), Some(Box::new(9569)));
   }
 
   #[test]

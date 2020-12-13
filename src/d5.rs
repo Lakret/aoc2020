@@ -1,15 +1,15 @@
 use std::collections::HashSet;
 
-pub fn solve(input: &str) -> Option<i64> {
+pub fn solve(input: &str) -> Option<Box<u32>> {
   input
     .trim_end()
     .split_ascii_whitespace()
     .map(|pass| seat_id(pass))
     .max()
-    .map(|max_seat_id| max_seat_id as i64)
+    .map(|max_seat_id| Box::new(max_seat_id))
 }
 
-pub fn solve2(input: &str) -> Option<i64> {
+pub fn solve2(input: &str) -> Option<Box<u32>> {
   let all_seat_ids = input
     .trim_end()
     .split_ascii_whitespace()
@@ -31,7 +31,7 @@ pub fn solve2(input: &str) -> Option<i64> {
     .collect::<HashSet<_>>();
 
   if candidates.len() == 1 {
-    candidates.drain().next().map(|candidate| candidate as i64)
+    candidates.drain().next().map(|candidate| Box::new(candidate))
   } else {
     panic!("more than one candidate: {:?}", candidates);
   }
@@ -52,17 +52,10 @@ fn decode_boarding_pass(pass: &str) -> (u32, u32) {
   (row, col)
 }
 
-fn extract_from_range(
-  divisions: &str,
-  min: u32,
-  max: u32,
-) -> Result<u32, String> {
+fn extract_from_range(divisions: &str, min: u32, max: u32) -> Result<u32, String> {
   match divide_range(&divisions.chars().collect::<Vec<_>>(), min, max) {
     (min, max) if min == max => Ok(min),
-    (min, max) => Err(format!(
-      "didn't arrive at one value: min = {}, max = {}",
-      min, max
-    )),
+    (min, max) => Err(format!("didn't arrive at one value: min = {}, max = {}", min, max)),
   }
 }
 
@@ -94,12 +87,12 @@ mod tests {
   #[test]
   fn part_one_solved() {
     let input = fs::read_to_string("inputs/d5").unwrap();
-    assert_eq!(solve(&input), Some(822))
+    assert_eq!(solve(&input), Some(Box::new(822)));
   }
 
   #[test]
   fn part_two_solved() {
     let input = fs::read_to_string("inputs/d5").unwrap();
-    assert_eq!(solve2(&input), Some(705))
+    assert_eq!(solve2(&input), Some(Box::new(705)));
   }
 }

@@ -1,54 +1,112 @@
 #[macro_use]
 extern crate lazy_static;
 
+use std::time::Instant;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use std::time::Instant;
-
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 
-mod d1;
-mod d10;
-mod d11;
-mod d2;
-mod d3;
-mod d4;
-mod d5;
-mod d6;
-mod d7;
-mod d8;
-mod d9;
+type Solver = fn(&str) -> Option<Box<dyn std::fmt::Debug>>;
 
-type Solver = fn(&str) -> Option<i64>;
-const COMMANDS: [(&'static str, Solver); 24] = [
-  ("d1", d1::solve),
-  ("d1_2", d1::solve2),
-  ("d2", d2::solve),
-  ("d2_2", d2::solve2),
-  ("d3", d3::solve),
-  ("d3_2", d3::solve2),
-  ("d4", d4::solve),
-  ("d4_2", d4::solve2),
-  ("d5", d5::solve),
-  ("d5_2", d5::solve2),
-  ("d6", d6::solve),
-  ("d6_2", d6::solve2),
-  ("d7", d7::solve),
-  ("d7_2", d7::solve2),
-  ("d8", d8::solve),
-  ("d8_2", d8::solve2),
-  ("d9", d9::solve),
-  ("d9_2", d9::solve2),
-  ("d10", d10::solve),
-  ("d10_2", d10::solve2),
-  ("d11", d11::solve),
-  ("d11_2", d11::solve2),
-  ("d11_debug", d11::solve_debug),
-  ("d11_2_debug", d11::solve2_debug),
-];
+/// This macro counts a number of repetitions of some token.
+macro_rules! count {
+  () => (0usize);
+  ( $x:tt $($xs:tt)* ) => (1usize + count!($($xs)*));
+}
+
+/// This macro defines passed modules, and corresponding
+/// `module_name` and `module_name_2` commands for the REPL.
+///
+/// You can also add custom commands in the `commands` map in `main()` function.
+macro_rules! commands {
+  ($($module:ident),*) => {
+     $(mod $module;)*
+
+    const COMMANDS: [(&'static str, Solver); count!($($module,)*)] = [
+      $(
+        (
+          stringify!($module),
+           // Note the cast to  `Box<dyn std::fmt::Debug>` here and below.
+           //
+           // This is needed to allow `solve` functions in the day modules to return any
+           // `Option<Box<T>>`, as long as this `T` implements `Debug`;
+           // e.g., this prevents errors when calling `assert_eq!` on results of those functions.
+          |input: &str| $module::solve(input).map(|x| (x as Box<dyn std::fmt::Debug>))
+        ),
+      )*
+
+      $(
+        (
+          concat!(stringify!($module), "_2"),
+          |input: &str| $module::solve2(input).map(|x| (x as Box<dyn std::fmt::Debug>))
+        ),
+      )*
+    ];
+  };
+}
+
+commands!(d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11);
+
+fn main() {
+  let mut rl = Editor::<()>::new();
+
+  let mut commands: HashMap<&'static str, Solver> = COMMANDS.iter().cloned().collect();
+  // special commands should go here
+  commands.insert("d11_debug", |input: &str| {
+    d11::solve_debug(input).map(|x| (x as Box<dyn std::fmt::Debug>))
+  });
+  commands.insert("d11_2_debug", |input: &str| {
+    d11::solve2_debug(input).map(|x| (x as Box<dyn std::fmt::Debug>))
+  });
+
+  loop {
+    let readline = rl.readline(">>> ");
+
+    match readline {
+      Ok(line) => {
+        rl.add_history_entry(line.as_str());
+
+        if &line == "all" {
+          for (name, solver) in commands.iter() {
+            if !name.contains("debug") {
+              if let Some(input_file) = solver_name_to_default_input_path(&commands, name) {
+                println!("Running {}", name);
+                run_command(solver, input_file);
+                println!();
+              }
+            }
+          }
+        } else if &line == "list" {
+          let mut command_names = commands.keys().map(|x| *x).collect::<Vec<_>>();
+          command_names.sort();
+
+          println!(
+            "The following commands are defined:\n{}",
+            textwrap::fill(&command_names.join(", "), 80)
+          );
+        } else if let Some((solver, input_file)) = parse_line(&line) {
+          match commands.get(solver) {
+            None => println!("Unrecoginzed command: {:?}.", &line),
+            Some(solver) => run_command(solver, input_file),
+          }
+        }
+      }
+
+      Err(error) => {
+        match error {
+          ReadlineError::Interrupted => println!("CTRL-C"),
+          ReadlineError::Eof => println!("CTRL-D"),
+          _ => println!("Error: {:?}", error),
+        }
+
+        break;
+      }
+    }
+  }
+}
 
 fn parse_line(line: &str) -> Option<(&str, PathBuf)> {
   let items = line.split_ascii_whitespace().collect::<Vec<_>>();
@@ -60,10 +118,10 @@ fn parse_line(line: &str) -> Option<(&str, PathBuf)> {
   }
 }
 
-fn solver_name_to_default_input_path(solver_name: &str) -> Option<PathBuf> {
-  COMMANDS
+fn solver_name_to_default_input_path(commands: &HashMap<&'static str, Solver>, solver_name: &str) -> Option<PathBuf> {
+  commands
     .iter()
-    .find(|(name, _solver)| *name == solver_name)
+    .find(|(name, _solver)| **name == solver_name)
     .and_then(|(name, _solver)| task_name_to_default_input_path(name))
 }
 
@@ -90,47 +148,5 @@ where
       println!("Elapsed: {:?}.", now.elapsed());
     }
     Err(error) => println!("Cannot read input file {:?} due to {:?}.", &input_file, error),
-  }
-}
-
-fn main() {
-  let mut rl = Editor::<()>::new();
-  let commands: HashMap<&'static str, Solver> = COMMANDS.iter().cloned().collect();
-
-  loop {
-    let readline = rl.readline(">>> ");
-
-    match readline {
-      Ok(line) => {
-        rl.add_history_entry(line.as_str());
-
-        if &line == "all" {
-          for (name, solver) in COMMANDS.iter() {
-            if !name.contains("debug") {
-              if let Some(input_file) = solver_name_to_default_input_path(name) {
-                println!("Running {}", name);
-                run_command(solver, input_file);
-                println!();
-              }
-            }
-          }
-        } else if let Some((solver, input_file)) = parse_line(&line) {
-          match commands.get(solver) {
-            None => println!("Unrecoginzed command: {:?}.", &line),
-            Some(solver) => run_command(solver, input_file),
-          }
-        }
-      }
-
-      Err(error) => {
-        match error {
-          ReadlineError::Interrupted => println!("CTRL-C"),
-          ReadlineError::Eof => println!("CTRL-D"),
-          _ => println!("Error: {:?}", error),
-        }
-
-        break;
-      }
-    }
   }
 }

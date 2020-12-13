@@ -1,21 +1,21 @@
 use std::collections::HashSet;
 
-pub fn solve(input: &str) -> Option<i64> {
+pub fn solve(input: &str) -> Option<Box<i64>> {
   let numbers = parse(input);
 
   if let Some((x, y)) = find_complement(&numbers, 0) {
-    return Some(x * y);
+    return Some(Box::new(x * y));
   }
 
   None
 }
 
-pub fn solve2(input: &str) -> Option<i64> {
+pub fn solve2(input: &str) -> Option<Box<i64>> {
   let numbers = parse(input);
 
   for z in numbers.iter() {
     if let Some((x, y)) = find_complement(&numbers, *z) {
-      return Some(x * y * z);
+      return Some(Box::new(x * y * z));
     }
   }
 
@@ -60,23 +60,23 @@ mod test {
 
   #[test]
   fn part_one_works_with_sample() {
-    assert_eq!(solve(SAMPLE_INPUT), Some(514579));
+    assert_eq!(solve(SAMPLE_INPUT), Some(Box::new(514579)));
   }
 
   #[test]
   fn part_two_works_with_sample() {
-    assert_eq!(solve2(SAMPLE_INPUT), Some(241861950));
+    assert_eq!(solve2(SAMPLE_INPUT), Some(Box::new(241861950)));
   }
 
   #[test]
   fn part_one_works() {
     let input = fs::read_to_string("inputs/d1").unwrap();
-    assert_eq!(solve(&input), Some(921504));
+    assert_eq!(solve(&input), Some(Box::new(921504)));
   }
 
   #[test]
   fn part_two_works() {
     let input = fs::read_to_string("inputs/d1").unwrap();
-    assert_eq!(solve2(&input), Some(195700142));
+    assert_eq!(solve2(&input), Some(Box::new(195700142)));
   }
 }

@@ -1,22 +1,16 @@
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 
-pub fn solve(input: &str) -> Option<i64> {
-  let valid_passports = parse(input)
-    .iter()
-    .filter(|passport| is_valid(passport))
-    .count();
+pub fn solve(input: &str) -> Option<Box<usize>> {
+  let valid_passports = parse(input).iter().filter(|passport| is_valid(passport)).count();
 
-  Some(valid_passports as i64)
+  Some(Box::new(valid_passports))
 }
 
-pub fn solve2(input: &str) -> Option<i64> {
-  let valid_passports = parse(input)
-    .iter()
-    .filter(|passport| is_valid2(passport))
-    .count();
+pub fn solve2(input: &str) -> Option<Box<usize>> {
+  let valid_passports = parse(input).iter().filter(|passport| is_valid2(passport)).count();
 
-  Some(valid_passports as i64)
+  Some(Box::new(valid_passports))
 }
 
 fn parse(input: &str) -> Vec<HashMap<String, String>> {
@@ -40,9 +34,7 @@ fn is_valid(passport: &HashMap<String, String>) -> bool {
   let keys = passport.keys().collect::<HashSet<_>>();
 
   let required = vec!["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "pid"];
-  required
-    .iter()
-    .all(|field| keys.contains(&field.to_string()))
+  required.iter().all(|field| keys.contains(&field.to_string()))
 }
 
 fn is_valid2(passport: &HashMap<String, String>) -> bool {
@@ -57,13 +49,7 @@ fn is_valid2(passport: &HashMap<String, String>) -> bool {
     let valid_ecl = is_valid_ecl(passport.get("ecl").unwrap());
     let valid_pid = is_valid_pid(passport.get("pid").unwrap());
 
-    valid_byr
-      && valid_iyr
-      && valid_eyr
-      && valid_hgt
-      && valid_hcl
-      && valid_ecl
-      && valid_pid
+    valid_byr && valid_iyr && valid_eyr && valid_hgt && valid_hcl && valid_ecl && valid_pid
   } else {
     false
   }
@@ -78,8 +64,7 @@ fn is_valid_year(year: &str, min: u32, max: u32) -> bool {
 
 fn is_valid_height(height: &str) -> bool {
   lazy_static! {
-    static ref RE: Regex =
-      Regex::new(r"(?P<number>\d+)(?P<unit>cm|in)").unwrap();
+    static ref RE: Regex = Regex::new(r"(?P<number>\d+)(?P<unit>cm|in)").unwrap();
   }
 
   match RE.captures_iter(height).next() {
@@ -108,8 +93,7 @@ fn is_valid_hcl(hcl: &str) -> bool {
 
 fn is_valid_ecl(ecl: &str) -> bool {
   lazy_static! {
-    static ref VALID_ECLS: Vec<&'static str> =
-      vec!["amb", "blu", "brn", "gry", "grn", "hzl", "oth"];
+    static ref VALID_ECLS: Vec<&'static str> = vec!["amb", "blu", "brn", "gry", "grn", "hzl", "oth"];
   }
 
   VALID_ECLS.contains(&ecl)
@@ -156,13 +140,13 @@ mod tests {
   #[test]
   fn part_one_works_on_sample() {
     let input = fs::read_to_string("inputs/sample4").unwrap();
-    assert_eq!(solve(&input), Some(2));
+    assert_eq!(solve(&input), Some(Box::new(2)));
   }
 
   #[test]
   fn part_one_solved() {
     let input = fs::read_to_string("inputs/d4").unwrap();
-    assert_eq!(solve(&input), Some(245));
+    assert_eq!(solve(&input), Some(Box::new(245)));
   }
 
   #[test]
@@ -191,12 +175,10 @@ mod tests {
 
   #[test]
   fn valid2_works() {
-    let passport = parse(
-      "pid:087499704 hgt:74in ecl:grn iyr:2012 eyr:2030 byr:1980 hcl:#623a2f",
-    )
-    .into_iter()
-    .next()
-    .unwrap();
+    let passport = parse("pid:087499704 hgt:74in ecl:grn iyr:2012 eyr:2030 byr:1980 hcl:#623a2f")
+      .into_iter()
+      .next()
+      .unwrap();
 
     assert!(is_valid2(&passport));
   }
@@ -218,7 +200,7 @@ iyr:2010 hgt:158cm hcl:#b6652a ecl:blu byr:1944 eyr:2021 pid:093154719
 "#;
 
     assert_eq!(parse(valid_passports).len(), 4);
-    assert_eq!(solve2(&valid_passports), Some(4));
+    assert_eq!(solve2(&valid_passports), Some(Box::new(4)));
 
     let invalid_passports = r#"eyr:1972 cid:100
 hcl:#18171d ecl:amb hgt:170 pid:186cm iyr:2018 byr:1926
@@ -236,12 +218,12 @@ pid:3556412378 byr:2007
 "#;
 
     assert_eq!(parse(invalid_passports).len(), 4);
-    assert_eq!(solve2(invalid_passports), Some(0));
+    assert_eq!(solve2(invalid_passports), Some(Box::new(0)));
   }
 
   #[test]
   fn part_two_solved() {
     let input = fs::read_to_string("inputs/d4").unwrap();
-    assert_eq!(solve2(&input), Some(133));
+    assert_eq!(solve2(&input), Some(Box::new(133)));
   }
 }

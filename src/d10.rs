@@ -1,16 +1,16 @@
 use std::collections::HashSet;
 
-pub fn solve(input: &str) -> Option<i64> {
+pub fn solve(input: &str) -> Option<Box<usize>> {
   let adapters = parse(input);
   let differences = jolt_differences(adapters);
 
   let one_diffs_count = differences.iter().filter(|jolt| **jolt == 1).count();
   let three_diffs_count = differences.iter().filter(|jolt| **jolt == 3).count();
 
-  Some((one_diffs_count * three_diffs_count) as i64)
+  Some(Box::new(one_diffs_count * three_diffs_count))
 }
 
-pub fn solve2(input: &str) -> Option<i64> {
+pub fn solve2(input: &str) -> Option<Box<usize>> {
   let adapters = parse(input);
   let differences = jolt_differences(adapters);
 
@@ -26,7 +26,7 @@ pub fn solve2(input: &str) -> Option<i64> {
     .iter()
     .fold(1, |acc, problem| acc * count_arrangements(problem));
 
-  Some(total_count as i64)
+  Some(Box::new(total_count))
 }
 
 // Splits `arrangement` into non-overlapping subproblems
@@ -136,18 +136,18 @@ mod tests {
   #[test]
   fn part_one_solved() {
     let input = fs::read_to_string("inputs/d10").unwrap();
-    assert_eq!(solve(&input), Some(2812));
+    assert_eq!(solve(&input), Some(Box::new(2812)));
   }
 
   #[test]
   fn part_two_samples_solved() {
     let input = fs::read_to_string("inputs/sample10").unwrap();
-    assert_eq!(solve2(&input), Some(8));
+    assert_eq!(solve2(&input), Some(Box::new(8)));
 
     let input = fs::read_to_string("inputs/sample10_2").unwrap();
-    assert_eq!(solve2(&input), Some(19208));
+    assert_eq!(solve2(&input), Some(Box::new(19208)));
 
     let input = fs::read_to_string("inputs/d10").unwrap();
-    assert_eq!(solve2(&input), Some(386869246296064));
+    assert_eq!(solve2(&input), Some(Box::new(386869246296064)));
   }
 }

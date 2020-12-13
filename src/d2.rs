@@ -1,23 +1,17 @@
 use regex::Regex;
 
-pub fn solve(input: &str) -> Option<i64> {
+pub fn solve(input: &str) -> Option<Box<usize>> {
   let passwords = parse(input);
-  let valid_count = passwords
-    .into_iter()
-    .filter(|password| password.is_valid())
-    .count();
+  let valid_count = passwords.into_iter().filter(|password| password.is_valid()).count();
 
-  Some(valid_count as i64)
+  Some(Box::new(valid_count))
 }
 
-pub fn solve2(input: &str) -> Option<i64> {
+pub fn solve2(input: &str) -> Option<Box<usize>> {
   let passwords = parse(input);
-  let valid_count = passwords
-    .into_iter()
-    .filter(|password| password.is_valid2())
-    .count();
+  let valid_count = passwords.into_iter().filter(|password| password.is_valid2()).count();
 
-  Some(valid_count as i64)
+  Some(Box::new(valid_count))
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -34,8 +28,7 @@ impl Password {
       .filter(|letter| *letter == self.policy.letter)
       .count();
 
-    policy_letter_count >= self.policy.min
-      && policy_letter_count <= self.policy.max
+    policy_letter_count >= self.policy.min && policy_letter_count <= self.policy.max
   }
 
   pub fn is_valid2(&self) -> bool {
@@ -48,8 +41,7 @@ impl Password {
       let second_matches = *second == self.policy.letter;
 
       // a xor b = (a and not b) or (not a and b)
-      return (first_matches && !second_matches)
-        || (!first_matches && second_matches);
+      return (first_matches && !second_matches) || (!first_matches && second_matches);
     }
 
     false
@@ -64,10 +56,7 @@ struct Policy {
 }
 
 fn parse(input: &str) -> Vec<Password> {
-  let re = Regex::new(
-    r"^(?P<min>\d+)-(?P<max>\d+) (?P<letter>\w): (?P<password>\w+)\n?$",
-  )
-  .unwrap();
+  let re = Regex::new(r"^(?P<min>\d+)-(?P<max>\d+) (?P<letter>\w): (?P<password>\w+)\n?$").unwrap();
 
   input
     .trim_end()
@@ -137,12 +126,12 @@ mod tests {
   #[test]
   fn part_one_solved() {
     let input = fs::read_to_string("inputs/d2").expect("can read day 2 input");
-    assert_eq!(solve(&input), Some(538));
+    assert_eq!(solve(&input), Some(Box::new(538)));
   }
 
   #[test]
   fn part_two_solved() {
     let input = fs::read_to_string("inputs/d2").expect("can read day 2 input");
-    assert_eq!(solve2(&input), Some(489));
+    assert_eq!(solve2(&input), Some(Box::new(489)));
   }
 }
