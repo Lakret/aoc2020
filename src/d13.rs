@@ -15,7 +15,7 @@ pub fn solve(input: &str) -> Option<Box<u32>> {
 }
 
 pub fn solve2(input: &str) -> Option<Box<u64>> {
-  let mut schedule = input
+  let schedule = input
     .trim_end()
     .split('\n')
     .skip(1)
@@ -26,37 +26,22 @@ pub fn solve2(input: &str) -> Option<Box<u64>> {
     .filter(|(_idx, elem)| *elem != "x")
     .map(|(idx, bus_id)| (idx as u64, bus_id.parse::<u64>().unwrap()))
     .collect::<Vec<_>>();
-  dbg!(&schedule);
 
-  if schedule.contains(&(60, 601)) {
-    println!("Cheating");
-    // schedule.push((17489, 350239))
-    // schedule.push((717068, 14359799));
-    schedule.push((26531613, 531312563));
-  }
-
-  // TODO: this is too slow!
-  let (max_bus_id_offset, max_bus_id) = schedule
-    .iter()
-    .max_by(|(_offset, bus_id), (_offset2, bus_id2)| bus_id.cmp(bus_id2))
-    .unwrap();
-  let mut factor = 1u64;
-  loop {
-    let timestamp = max_bus_id * factor - max_bus_id_offset;
-    // dbg!((factor, timestamp));
-    factor += 1;
-
-    let mut found = true;
-    for (offset, bus_id) in schedule.iter() {
-      if (timestamp + offset) % bus_id != 0 {
-        found = false;
+  // Solution adapted from: https://bit.ly/3p1r9Tl
+  let mut timestamp = 1;
+  let mut wait_time = 1;
+  for (offset, bus_id) in schedule.into_iter() {
+    loop {
+      if (timestamp + offset) % bus_id == 0 {
+        wait_time *= bus_id;
+        break;
       }
-    }
 
-    if found {
-      return Some(Box::new(timestamp));
+      timestamp += wait_time;
     }
   }
+
+  Some(Box::new(timestamp))
 }
 
 #[derive(Debug, Clone)]
@@ -102,8 +87,7 @@ mod tests {
     let input = fs::read_to_string("inputs/sample13").unwrap();
     assert_eq!(solve2(&input), Some(Box::new(1068781)));
 
-    // TODO:
-    // let input = fs::read_to_string("inputs/d13").unwrap();
-    // assert_eq!(solve2(&input), None);
+    let input = fs::read_to_string("inputs/d13").unwrap();
+    assert_eq!(solve2(&input), Some(Box::new(780601154795940)));
   }
 }
