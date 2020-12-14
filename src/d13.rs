@@ -29,15 +29,15 @@ pub fn solve2(input: &str) -> Option<Box<u64>> {
 
   // Solution adapted from: https://bit.ly/3p1r9Tl
   let mut timestamp = 1;
-  let mut wait_time = 1;
+  let mut period = 1;
   for (offset, bus_id) in schedule.into_iter() {
     loop {
       if (timestamp + offset) % bus_id == 0 {
-        wait_time *= bus_id;
+        period *= bus_id;
         break;
       }
 
-      timestamp += wait_time;
+      timestamp += period;
     }
   }
 
