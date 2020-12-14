@@ -9,22 +9,87 @@ pub fn solve(input: &str) -> Option<Box<u64>> {
 }
 
 pub fn solve2(input: &str) -> Option<Box<u64>> {
-  None
+  let program = Program::parse(input);
+  let memory = program.execute2().memory;
+  let result = memory.into_iter().map(|(_address, value)| value).sum();
+
+  Some(Box::new(result))
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct Mask {
+  raw: String,
   ones: u64,
   zeros: u64,
 }
 
 impl Mask {
-  fn apply(&self, value: u64) -> u64 {
+  pub fn apply(&self, value: u64) -> u64 {
     (value & self.zeros) | self.ones
+  }
+
+  pub fn decode_memory_address(&self, address: u64) -> Vec<u64> {
+    let address = format!("{:b}", address).chars().rev().collect::<Vec<_>>();
+
+    self
+      .raw
+      .chars()
+      .rev()
+      .enumerate()
+      .fold(vec![], |possibilities, (shift, ch)| match ch {
+        '0' | '1' => {
+          let bit = if ch == '0' {
+            if shift < address.len() {
+              address[shift]
+            } else {
+              '0'
+            }
+          } else {
+            '1'
+          };
+
+          if possibilities.is_empty() {
+            vec![vec![bit]]
+          } else {
+            possibilities
+              .into_iter()
+              .map(|possibility| {
+                let mut possibility = possibility.clone();
+                possibility.push(bit);
+                possibility
+              })
+              .collect()
+          }
+        }
+        'X' => {
+          if possibilities.is_empty() {
+            vec![vec!['0'], vec!['1']]
+          } else {
+            possibilities
+              .into_iter()
+              .flat_map(|possibility| {
+                let mut v1 = possibility.clone();
+                let mut v2 = possibility.clone();
+
+                v1.push('0');
+                v2.push('1');
+                vec![v1, v2]
+              })
+              .collect()
+          }
+        }
+        _ => panic!("Unexpected mask char at {}: {}.", shift, ch),
+      })
+      .into_iter()
+      .map(|possibility: Vec<char>| {
+        let possibility = possibility.into_iter().rev().collect::<String>();
+        u64::from_str_radix(&possibility.trim_start_matches('0'), 2).unwrap()
+      })
+      .collect()
   }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Instr {
   SetMask(Mask),
   Write { address: u64, value: u64 },
@@ -68,7 +133,11 @@ impl Program {
           let zeros = u64::from_str_radix(&zeros_mask, 2)
             .expect(&format!("Zeros bitmask should be a u64 in binary: {}", &zeros_mask));
 
-          SetMask(Mask { ones, zeros })
+          SetMask(Mask {
+            raw: rhs.to_string(),
+            ones,
+            zeros,
+          })
         } else {
           let address = lhs
             .trim_start_matches("mem[")
@@ -88,14 +157,35 @@ impl Program {
   fn execute(&self) -> State {
     let mut state = State::new();
 
-    for &instr in self.0.iter() {
+    for instr in self.0.iter() {
       match instr {
         SetMask(mask) => {
-          state.mask = Some(mask);
+          state.mask = Some(mask.clone());
         }
         Write { address, value } => {
-          let value = state.mask.unwrap().apply(value);
-          state.memory.insert(address, value);
+          let value = state.mask.clone().unwrap().apply(*value);
+          state.memory.insert(*address, value);
+        }
+      }
+    }
+
+    state
+  }
+
+  fn execute2(&self) -> State {
+    let mut state = State::new();
+
+    for instr in self.0.iter() {
+      match instr {
+        SetMask(mask) => {
+          state.mask = Some(mask.clone());
+        }
+        Write { address, value } => {
+          let addresses = state.mask.clone().unwrap().decode_memory_address(*address);
+
+          for address in addresses.into_iter() {
+            state.memory.insert(address, *value);
+          }
         }
       }
     }
@@ -118,6 +208,7 @@ mod tests {
       program.0,
       vec![
         SetMask(Mask {
+          raw: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXX1XXXX0X".to_string(),
           ones: 64,
           zeros: 68719476733,
         }),
@@ -139,7 +230,10 @@ mod tests {
 
   #[test]
   fn part_two_solved() {
+    let input = fs::read_to_string("inputs/sample14_2").unwrap();
+    assert_eq!(solve2(&input), Some(Box::new(208)));
+
     let input = fs::read_to_string("inputs/d14").unwrap();
-    assert_eq!(solve2(&input), None);
+    assert_eq!(solve2(&input), Some(Box::new(3885232834169)));
   }
 }
