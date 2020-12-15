@@ -11,7 +11,7 @@ pub fn solve2(input: &str) -> Option<Box<u64>> {
 fn last_number_spoken2(input: &str, till_turn: usize) -> u64 {
   let mut memory = Memory::new(input);
 
-  let (turn, last) = input.split(',').fold((0, 0), |(turn, last), num| {
+  let (turn, last) = input.split(',').fold((0, 0), |(turn, _last), num| {
     let turn = turn + 1;
     let last = num.parse::<u64>().unwrap();
     (turn, last)
@@ -22,9 +22,9 @@ fn last_number_spoken2(input: &str, till_turn: usize) -> u64 {
     let turn = turn + 1;
 
     let new_number = match memory.recall(&last) {
-      (None, None) => 0,
-      (Some(_idx_recent), None) => 0,
-      (Some(idx_recent), Some(idx_pre_recent)) => (idx_recent - idx_pre_recent) as u64,
+      (0, 0) => 0,
+      (idx_recent, 0) if idx_recent != 0 => 0,
+      (idx_recent, idx_pre_recent) if idx_recent != 0 && idx_pre_recent != 0 => (idx_recent - idx_pre_recent) as u64,
       impossible => panic!("Impossible recall at turn {} for {}: {:?}.", turn, last, impossible),
     };
     // dbg!((turn, last, new_number));
@@ -39,9 +39,12 @@ fn last_number_spoken2(input: &str, till_turn: usize) -> u64 {
 /// Associates each number with two most recent turns when it was spoken:
 ///
 /// `number -> (Option<recent_turn_id>, Option<pre_recent_turn_id>)`.
+///
+/// We also special-case zeros to speed up the algorithm
+/// (0's are spoken more often than other numbers).
 #[derive(Debug, Clone)]
 struct Memory {
-  number_to_turns: HashMap<u64, (Option<usize>, Option<usize>)>,
+  number_to_turns: HashMap<u64, (usize, usize)>,
   zero_to_turns: [usize; 2],
 }
 
@@ -50,13 +53,13 @@ impl Memory {
     let mut number_to_turns = input
       .split(',')
       .enumerate()
-      .map(|(idx, n)| (n.parse::<u64>().unwrap(), (Some(idx + 1), None)))
+      .map(|(idx, n)| (n.parse::<u64>().unwrap(), (idx + 1, 0)))
       .collect::<HashMap<_, _>>();
 
     let mut zero_to_turns = [0; 2];
-    let (zero_recent, zero_pre_recent) = number_to_turns.get(&0).unwrap_or(&(None, None));
-    zero_to_turns[0] = zero_recent.unwrap_or(0);
-    zero_to_turns[1] = zero_pre_recent.unwrap_or(0);
+    let (zero_recent, zero_pre_recent) = number_to_turns.get(&0).unwrap_or(&(0, 0));
+    zero_to_turns[0] = *zero_recent;
+    zero_to_turns[1] = *zero_pre_recent;
     number_to_turns.remove(&0);
 
     Memory {
@@ -72,8 +75,8 @@ impl Memory {
       self.zero_to_turns[0] = turn;
     } else {
       let new_record = match self.number_to_turns.get(&number) {
-        None => (Some(turn), None),
-        Some((Some(idx_recent), _)) => (Some(turn), Some(*idx_recent)),
+        None => (turn, 0),
+        Some((idx_recent, _)) if *idx_recent != 0 => (turn, *idx_recent),
         impossible => panic!("Impossible record for {} at turn {}: {:?}.", number, turn, impossible),
       };
 
@@ -81,25 +84,13 @@ impl Memory {
     }
   }
 
-  fn recall(&self, number: &u64) -> (Option<usize>, Option<usize>) {
+  fn recall(&self, number: &u64) -> (usize, usize) {
     if *number == 0 {
-      let idx_recent = if self.zero_to_turns[0] == 0 {
-        None
-      } else {
-        Some(self.zero_to_turns[0])
-      };
-
-      let idx_pre_recent = if self.zero_to_turns[1] == 0 {
-        None
-      } else {
-        Some(self.zero_to_turns[1])
-      };
-
-      (idx_recent, idx_pre_recent)
+      (self.zero_to_turns[0], self.zero_to_turns[1])
     } else {
       match self.number_to_turns.get(number) {
-        None => (None, None),
-        Some(previous) => previous.clone(),
+        None => (0, 0),
+        Some(previous) => (previous.0, previous.1),
       }
     }
   }
