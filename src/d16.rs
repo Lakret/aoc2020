@@ -1,5 +1,7 @@
 use std::ops::RangeInclusive;
 use std::collections::{HashMap, HashSet};
+use std::thread;
+use std::sync::mpsc;
 
 pub fn solve(input: &str) -> Option<Box<u64>> {
   let task = Task::parse(input);
@@ -11,19 +13,46 @@ pub fn solve(input: &str) -> Option<Box<u64>> {
 pub fn solve2(input: &str) -> Option<Box<u64>> {
   let task = Task::parse(input);
   let valid_tickets = task.valid_tickets();
-  // valid_tickets.push(task.your_ticket.clone());
-  dbg!(valid_tickets.len());
 
-  let assignment = task.field_to_idx(&valid_tickets).unwrap();
-  dbg!(&assignment);
+  let threads = 8;
+  let (sender, receiver) = mpsc::channel();
+  let _join_handles = (0..threads)
+    .into_iter()
+    .map(|idx| {
+      let task = task.clone();
+      let sender = sender.clone();
+      let valid_tickets = valid_tickets.clone();
 
-  let mut result = 1;
-  for departure_field in assignment.keys().filter(|key| key.starts_with("departure")) {
-    let departure_filed_idx = assignment[departure_field];
-    result *= task.your_ticket.0[departure_filed_idx];
+      thread::spawn(move || {
+        println!("Running thread {}...", idx);
+        match task.field_to_idx(&valid_tickets) {
+          Some(assignment) => {
+            println!("Thread {} found assignment {:?}", idx, &assignment);
+            sender.send(assignment).unwrap_or(());
+          }
+          _ => (),
+        }
+      })
+    })
+    .collect::<Vec<_>>();
+
+  thread::yield_now();
+
+  match receiver.recv() {
+    Ok(assignment) => {
+      let mut result = 1;
+      for departure_field in assignment.keys().filter(|key| key.starts_with("departure")) {
+        let departure_filed_idx = assignment[departure_field];
+        result *= task.your_ticket.0[departure_filed_idx];
+      }
+
+      Some(Box::new(result))
+    }
+    Err(err) => {
+      dbg!(err);
+      None
+    }
   }
-
-  Some(Box::new(result))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -170,7 +199,6 @@ impl Task {
 
     let mut line = lines.pop().unwrap();
     let mut rules = HashMap::new();
-    // departure location: 49-920 or 932-950
     while line != "" {
       if let [field_name, ranges] = line.split(": ").collect::<Vec<_>>()[..] {
         if let [range1, range2] = ranges.split(" or ").collect::<Vec<_>>()[..] {
@@ -242,8 +270,65 @@ mod tests {
   }
 
   #[test]
+  #[ignore]
   fn part_two_solved() {
+    // Without tabu, best attempt:
+    // >>> d16_2
+    // [src/d16.rs:15] valid_tickets.len() = 190
+    // [src/d16.rs:18] &assignment = {
+    //     "departure track": 12,
+    //     "class": 7,
+    //     "arrival track": 2,
+    //     "type": 13,
+    //     "price": 16,
+    //     "departure station": 5,
+    //     "zone": 1,
+    //     "arrival platform": 18,
+    //     "departure location": 10,
+    //     "wagon": 6,
+    //     "seat": 17,
+    //     "arrival station": 8,
+    //     "arrival location": 14,
+    //     "departure platform": 4,
+    //     "train": 19,
+    //     "duration": 11,
+    //     "departure time": 0,
+    //     "departure date": 3,
+    //     "route": 9,
+    //     "row": 15,
+    // }
+    // Some(589685618167)
+    // Elapsed: 454.063766194s.
+
+    // With tabu, best attempt:
+    // >>> d16_2
+    // [src/d16.rs:15] valid_tickets.len() = 190
+    // [src/d16.rs:18] &assignment = {
+    //     "departure time": 0,
+    //     "arrival station": 8,
+    //     "departure date": 3,
+    //     "type": 13,
+    //     "arrival location": 14,
+    //     "class": 7,
+    //     "zone": 1,
+    //     "duration": 11,
+    //     "route": 9,
+    //     "departure station": 5,
+    //     "price": 16,
+    //     "train": 19,
+    //     "arrival platform": 18,
+    //     "arrival track": 2,
+    //     "departure track": 12,
+    //     "departure location": 10,
+    //     "departure platform": 4,
+    //     "wagon": 6,
+    //     "row": 15,
+    //     "seat": 17,
+    // }
+    // Some(589685618167)
+    // Elapsed: 50.50911689s.
+
     let input = fs::read_to_string("inputs/d16").unwrap();
-    assert_eq!(solve2(&input), None);
+    assert_eq!(solve2(&input), Some(Box::new(589685618167)));
   }
 }
