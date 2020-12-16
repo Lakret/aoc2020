@@ -82,11 +82,14 @@ impl Task {
 
   fn field_to_idx(&self, tickets: &Vec<Ticket>) -> Option<Assignment> {
     let ticket_length = tickets.first().unwrap().0.len();
+    let mut tabu_assignments = HashMap::new();
+
     self.field_to_idx_inner(
       tickets,
       HashMap::new(),
       HashSet::new(),
       self.rules.keys().cloned().collect(),
+      &mut tabu_assignments,
       ticket_length,
     )
   }
@@ -97,6 +100,7 @@ impl Task {
     assignment: Assignment,
     assigned_idx: HashSet<usize>,
     unassigned: Vec<String>,
+    tabu_assignments: &mut HashMap<String, HashSet<usize>>,
     ticket_length: usize,
   ) -> Option<Assignment> {
     if unassigned.is_empty() {
@@ -104,11 +108,15 @@ impl Task {
     } else {
       let mut unassigned = unassigned;
       let field_name = unassigned.pop().unwrap();
+      let excluded = tabu_assignments
+        .get(&field_name)
+        .map(|excluded| excluded.clone())
+        .unwrap_or(HashSet::new());
 
       let [rule1, rule2] = self.rules.get(&field_name).unwrap();
       for idx in 0..ticket_length {
         let field_name = field_name.clone();
-        if !assigned_idx.contains(&idx) {
+        if !assigned_idx.contains(&idx) && !excluded.contains(&idx) {
           let rule_is_satisfied = tickets.iter().all(|ticket| {
             let value = ticket.0[idx];
             rule1.contains(&value) || rule2.contains(&value)
@@ -121,10 +129,20 @@ impl Task {
             let mut assigned_idx = assigned_idx.clone();
             assigned_idx.insert(idx);
 
-            match self.field_to_idx_inner(tickets, assignment, assigned_idx, unassigned.clone(), ticket_length) {
+            match self.field_to_idx_inner(
+              tickets,
+              assignment,
+              assigned_idx,
+              unassigned.clone(),
+              tabu_assignments,
+              ticket_length,
+            ) {
               result @ Some(_) => return result,
               _ => continue,
             }
+          } else {
+            let tabu_idx = tabu_assignments.entry(field_name).or_insert(HashSet::new());
+            tabu_idx.insert(idx);
           }
         }
       }
