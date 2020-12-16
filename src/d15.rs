@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::hash::BuildHasherDefault;
+use fnv::{FnvHasher, FnvBuildHasher};
 
 pub fn solve(input: &str) -> Option<Box<u64>> {
   Some(Box::new(last_number_spoken2(input, 2020)))
@@ -43,17 +45,17 @@ fn last_number_spoken2(input: &str, till_turn: usize) -> u64 {
 /// (0's are spoken more often than other numbers).
 #[derive(Debug, Clone)]
 struct Memory {
-  number_to_turns: HashMap<u64, (usize, usize)>,
+  number_to_turns: HashMap<u64, (usize, usize), BuildHasherDefault<FnvHasher>>,
   zero_to_turns: [usize; 2],
 }
 
 impl Memory {
   fn new(input: &str) -> Memory {
-    let mut number_to_turns = input
-      .split(',')
-      .enumerate()
-      .map(|(idx, n)| (n.parse::<u64>().unwrap(), (idx + 1, 0)))
-      .collect::<HashMap<_, _>>();
+    let mut number_to_turns = HashMap::with_hasher(FnvBuildHasher::default());
+    for (idx, number) in input.split(',').enumerate() {
+      let number = number.parse::<u64>().unwrap();
+      number_to_turns.insert(number, (idx + 1, 0));
+    }
 
     let mut zero_to_turns = [0; 2];
     let (zero_recent, zero_pre_recent) = number_to_turns.get(&0).unwrap_or(&(0, 0));
