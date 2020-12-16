@@ -27,7 +27,6 @@ fn last_number_spoken2(input: &str, till_turn: usize) -> u64 {
       (idx_recent, idx_pre_recent) if idx_recent != 0 && idx_pre_recent != 0 => (idx_recent - idx_pre_recent) as u64,
       impossible => panic!("Impossible recall at turn {} for {}: {:?}.", turn, last, impossible),
     };
-    // dbg!((turn, last, new_number));
 
     memory.speak(turn, new_number);
     last = new_number;
@@ -38,7 +37,7 @@ fn last_number_spoken2(input: &str, till_turn: usize) -> u64 {
 
 /// Associates each number with two most recent turns when it was spoken:
 ///
-/// `number -> (Option<recent_turn_id>, Option<pre_recent_turn_id>)`.
+/// `number -> (recent_turn_id or 0 if not seen, pre_recent_turn_id or 0 -//-)`.
 ///
 /// We also special-case zeros to speed up the algorithm
 /// (0's are spoken more often than other numbers).
