@@ -2,6 +2,8 @@ use std::ops::RangeInclusive;
 use std::collections::{HashMap, HashSet};
 use std::thread;
 use std::sync::mpsc;
+use rand::thread_rng;
+use rand::seq::SliceRandom;
 
 pub fn solve(input: &str) -> Option<Box<u64>> {
   let task = Task::parse(input);
@@ -113,11 +115,15 @@ impl Task {
     let ticket_length = tickets.first().unwrap().0.len();
     let mut tabu_assignments = HashMap::new();
 
+    let mut rng = thread_rng();
+    let mut unassigned = self.rules.keys().cloned().collect::<Vec<_>>();
+    unassigned.shuffle(&mut rng);
+
     self.field_to_idx_inner(
       tickets,
       HashMap::new(),
       HashSet::new(),
-      self.rules.keys().cloned().collect(),
+      unassigned,
       &mut tabu_assignments,
       ticket_length,
     )
