@@ -271,12 +271,10 @@ mod tests {
     assert_eq!(assignment[&"row".to_string()], 0);
     assert_eq!(assignment[&"class".to_string()], 1);
     assert_eq!(assignment[&"seat".to_string()], 2);
-
-    assert_eq!(solve2(&input), Some(Box::new(1)));
   }
 
-  #[test]
   #[ignore]
+  #[test]
   fn part_two_solved() {
     // Without tabu, best attempt:
     // >>> d16_2

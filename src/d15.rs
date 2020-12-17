@@ -141,9 +141,8 @@ mod tests {
   }
 
   #[test]
-  #[ignore]
   fn part_two_solved() {
-    assert_eq!(solve2("0,3,6"), Some(Box::new(175594)));
+    // assert_eq!(solve2("0,3,6"), Some(Box::new(175594)));
     // assert_eq!(solve("1,3,2"), Some(Box::new(2578)));
     // assert_eq!(solve("2,1,3"), Some(Box::new(3544142)));
     // assert_eq!(solve("1,2,3"), Some(Box::new(261214)));
@@ -151,6 +150,6 @@ mod tests {
     // assert_eq!(solve("3,2,1"), Some(Box::new(18)));
     // assert_eq!(solve("3,1,2"), Some(Box::new(362)));
 
-    assert_eq!(solve("1,0,18,10,19,6"), Some(Box::new(10613991)));
+    assert_eq!(solve2("1,0,18,10,19,6"), Some(Box::new(10613991)));
   }
 }

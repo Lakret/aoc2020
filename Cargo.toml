@@ -13,3 +13,6 @@ lazy_static = "1.4.0"
 textwrap = "*"
 fnv = "*"
 rand = "*"
+
+[profile.test]
+opt-level = 3
