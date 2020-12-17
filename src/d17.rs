@@ -29,10 +29,10 @@ struct Point {
 impl Point {
   fn neighbours(&self) -> HashSet<Point> {
     let mut points = HashSet::new();
-
     points.insert(self.clone());
+
     for dimension_id in 0..self.coords.len() {
-      for point in points.iter().cloned().collect::<Vec<_>>() {
+      for point in points.clone() {
         for delta in [-1, 0, 1].iter() {
           let mut point = point.clone();
           point.coords[dimension_id] = point.coords[dimension_id] + delta;
@@ -47,9 +47,12 @@ impl Point {
   }
 }
 
+/// A state of the Conway's hypercube.
+///
+/// Contains currently `active` cells, `border` of the active zone,
+/// and the count of allowed `dimensions`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Cube {
-  // matches dimension_id with active coordinate range
   border: Vec<RangeInclusive<i64>>,
   active: HashSet<Point>,
   dimensions: usize,
@@ -82,6 +85,7 @@ impl Cube {
     cube
   }
 
+  /// Activates `point` in `self`, adjusting active zone's `border` accordingly.
   fn activate(&mut self, point: Point) {
     for (dimension_id, &coord) in point.coords.iter().enumerate() {
       self.border[dimension_id] = extend(&self.border[dimension_id], coord);
@@ -107,9 +111,7 @@ impl Cube {
     let mut seen = HashSet::new();
 
     while let Some(point) = consider.pop() {
-      if !seen.contains(&point)
-        && (self.active.contains(&point) || self.is_bordering_or_inside(&point) || next.is_bordering_or_inside(&point))
-      {
+      if !seen.contains(&point) && (self.active.contains(&point) || self.is_bordering_or_inside(&point)) {
         let neighbours = point.neighbours();
         let active_neighbours = neighbours
           .iter()
@@ -136,11 +138,11 @@ impl Cube {
       }
     }
 
-    dbg!(next.active.len());
     next
   }
 }
 
+/// Extends inclusive `range` to include `value`.
 fn extend<T>(range: &RangeInclusive<T>, value: T) -> RangeInclusive<T>
 where
   T: Copy + PartialOrd,
