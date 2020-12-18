@@ -1,18 +1,17 @@
+use Token::*;
+
 pub fn solve(input: &str) -> Option<Box<u64>> {
   let result: u64 = input
     .trim_end()
     .split('\n')
     .map(|line| {
       let tokens = Token::parse(line);
+
       eval_tokens(&tokens)
     })
     .sum();
 
   Some(Box::new(result))
-}
-
-pub fn solve2(input: &str) -> Option<Box<usize>> {
-  None
 }
 
 fn eval_tokens(tokens: &Vec<Token>) -> u64 {
@@ -48,6 +47,73 @@ fn try_perform_op(ops_stack: &mut Vec<Token>, value: u64, nums_stack: &mut Vec<u
   }
 }
 
+pub fn solve2(input: &str) -> Option<Box<u64>> {
+  let result = input
+    .trim_end()
+    .split('\n')
+    .map(|line| {
+      let tokens = Token::parse(line);
+      let tokens = add_plus_parens(tokens);
+
+      eval_tokens(&tokens)
+    })
+    .sum();
+
+  Some(Box::new(result))
+}
+
+/// Regroups `tokens` by adding parens around groups of tokens connected by `+`.
+/// This emulates changed operator precedence in part 2, without affecting parsing.
+fn add_plus_parens(tokens: Vec<Token>) -> Vec<Token> {
+  let mut with_plus_parens = vec![];
+  let mut curr_plus_group = vec![];
+
+  for token in tokens.into_iter() {
+    match token {
+      num @ Num(_) => {
+        if curr_plus_group.is_empty() {
+          with_plus_parens.push(num);
+        } else {
+          curr_plus_group.push(num);
+        }
+      }
+      Star => {
+        if curr_plus_group.is_empty() {
+          with_plus_parens.push(Star);
+        } else {
+          with_plus_parens.push(Parens(curr_plus_group));
+          curr_plus_group = vec![];
+
+          with_plus_parens.push(Star);
+        }
+      }
+      Plus => {
+        if curr_plus_group.is_empty() {
+          let prev = with_plus_parens.pop().unwrap();
+          curr_plus_group.push(prev);
+        }
+
+        curr_plus_group.push(Plus)
+      }
+      Parens(inner) => {
+        let sub = Parens(add_plus_parens(inner));
+
+        if curr_plus_group.is_empty() {
+          with_plus_parens.push(sub);
+        } else {
+          curr_plus_group.push(sub);
+        }
+      }
+    }
+  }
+
+  if !curr_plus_group.is_empty() {
+    with_plus_parens.push(Parens(curr_plus_group));
+  }
+
+  with_plus_parens
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
   Num(u64),
@@ -55,8 +121,6 @@ pub enum Token {
   Star,
   Parens(Vec<Token>),
 }
-
-use Token::*;
 
 impl Token {
   fn parse(input: &str) -> Vec<Token> {
@@ -172,12 +236,30 @@ mod tests {
     assert_eq!(solve(sample), Some(Box::new(13632)));
 
     let input = fs::read_to_string("inputs/d18").unwrap();
-    assert_eq!(solve(&input), None);
+    assert_eq!(solve(&input), Some(Box::new(654686398176)));
   }
 
   #[test]
   fn part_two_solved() {
+    let sample = "1 + 2 * 3 + 4 * 5 + 6";
+    assert_eq!(solve2(sample), Some(Box::new(231)));
+
+    let sample = "1 + (2 * 3) + (4 * (5 + 6))";
+    assert_eq!(solve2(sample), Some(Box::new(51)));
+
+    let sample = "2 * 3 + (4 * 5)";
+    assert_eq!(solve2(sample), Some(Box::new(46)));
+
+    let sample = "5 + (8 * 3 + 9 + 3 * 4 * 3)";
+    assert_eq!(solve2(sample), Some(Box::new(1445)));
+
+    let sample = "5 * 9 * (7 * 3 * 3 + 9 * 3 + (8 + 6 * 4))";
+    assert_eq!(solve2(sample), Some(Box::new(669060)));
+
+    let sample = "((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2";
+    assert_eq!(solve2(sample), Some(Box::new(23340)));
+
     let input = fs::read_to_string("inputs/d18").unwrap();
-    assert_eq!(solve2(&input), None);
+    assert_eq!(solve2(&input), Some(Box::new(8952864356993)));
   }
 }
