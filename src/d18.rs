@@ -19,6 +19,8 @@ use Expr::*;
 
 // returns Some((number, consumed_count)) or None
 fn number(input: &str) -> Option<(Expr, usize)> {
+  dbg!(input);
+
   let digits = input.chars().take_while(|ch| ch.is_ascii_digit()).collect::<String>();
   if digits.is_empty() {
     None
@@ -29,40 +31,88 @@ fn number(input: &str) -> Option<(Expr, usize)> {
   }
 }
 
-fn op(input: &str) -> Option<(Expr, usize)> {
+fn op(lhs: Expr, input: &str) -> Option<(Option<Expr>, usize)> {
   dbg!(input);
 
-  match expr(input) {
-    Some((lhs, left_consumed)) => match &input[left_consumed..(left_consumed + 1)] {
-      "+" => match expr(&input[left_consumed + 1..]) {
-        Some((rhs, right_consumed)) => {
-          let expr = Add(Box::new(lhs), Box::new(rhs));
-          let consumed = left_consumed + right_consumed + 1;
-          Some((expr, consumed))
-        }
-        None => None,
-      },
-      "*" => match expr(&input[left_consumed + 1..]) {
-        Some((rhs, right_consumed)) => {
-          let expr = Mul(Box::new(lhs), Box::new(rhs));
-          let consumed = left_consumed + right_consumed + 1;
-          Some((expr, consumed))
-        }
-        None => None,
-      },
-      _ => None,
-    },
-    None => None,
+  if input.len() > 0 {
+    if &input[..1] == ")" {
+      Some((None, 0))
+    } else {
+      match &input[0..1] {
+        "+" => match expr(&input[1..]) {
+          Some((rhs, right_consumed)) => {
+            println!("Got + rhs = {:?}", &rhs);
+            let expr = Add(Box::new(lhs), Box::new(rhs));
+            let consumed = right_consumed + 1;
+            Some((Some(expr), consumed))
+          }
+          None => None,
+        },
+        "*" => match expr(&input[1..]) {
+          Some((rhs, right_consumed)) => {
+            println!("Got * rhs = {:?}", &rhs);
+            let expr = Mul(Box::new(lhs), Box::new(rhs));
+            let consumed = right_consumed + 1;
+            Some((Some(expr), consumed))
+          }
+          None => None,
+        },
+        _ => None,
+      }
+    }
+  } else {
+    Some((None, 0))
   }
 }
 
+// (2 + 6) * 2 + 2 + 4
+// Mul(
+//   Add(Value(2), Value(6)),
+//   Add(Value(2),
+//     Add(Value(2), Value(4))))
+
 fn expr(input: &str) -> Option<(Expr, usize)> {
-  match number(input) {
-    num @ Some(_) => num,
-    None => match op(input) {
-      op @ Some(_) => op,
+  dbg!(input);
+
+  if &input[0..1] == "(" {
+    dbg!(&input[1..]);
+
+    match expr(&input[1..]) {
+      Some((inner, consumed)) => {
+        dbg!(&inner);
+
+        if input.len() > 1 + consumed && &input[consumed + 1..consumed + 2] == ")" {
+          let consumed = consumed + 2;
+
+          if input.len() > consumed {
+            match op(inner.clone(), &input[consumed..]) {
+              Some((Some(expr), right_consumed)) => Some((expr, consumed + right_consumed)),
+              _ => Some((inner, consumed)),
+            }
+          } else {
+            Some((inner, consumed))
+          }
+        } else {
+          None
+        }
+      }
       None => None,
-    },
+    }
+  } else {
+    match number(input) {
+      Some((lhs, left_consumed)) => match op(lhs.clone(), &input[left_consumed..]) {
+        Some((Some(expr), right_consumed)) => {
+          dbg!(&expr);
+          Some((expr, left_consumed + right_consumed))
+        }
+        Some((None, _)) => {
+          dbg!("None in expr");
+          Some((lhs, left_consumed))
+        }
+        None => None,
+      },
+      None => None,
+    }
   }
 }
 
@@ -91,11 +141,57 @@ mod tests {
     assert_eq!(parse(sample), Some(expr));
 
     let sample = "3 * 16 + 5";
-    let expr = Add(
-      Box::new(Mul(Box::new(Value(3)), Box::new(Value(16)))),
-      Box::new(Value(5)),
+    let expr = Mul(
+      Box::new(Value(3)),
+      Box::new(Add(Box::new(Value(16)), Box::new(Value(5)))),
     );
     assert_eq!(parse(sample), Some(expr));
+
+    let sample = "3 * 16 + 5 + 7";
+    let expr = Mul(
+      Box::new(Value(3)),
+      Box::new(Add(
+        Box::new(Value(16)),
+        Box::new(Add(Box::new(Value(5)), Box::new(Value(7)))),
+      )),
+    );
+    assert_eq!(parse(sample), Some(expr));
+
+    let sample = "(2 + 6)";
+    assert_eq!(parse(sample), Some(Add(Box::new(Value(2)), Box::new(Value(6)))));
+
+    let sample = "(2 + 6) * 2";
+    assert_eq!(
+      parse(sample),
+      Some(Mul(
+        Box::new(Add(Box::new(Value(2)), Box::new(Value(6)))),
+        Box::new(Value(2))
+      ))
+    );
+
+    let sample = "(2 + 6) * 2 + 2 + 4";
+    assert_eq!(
+      parse(sample),
+      Some(Mul(
+        Box::new(Add(Box::new(Value(2)), Box::new(Value(6)))),
+        Box::new(Add(
+          Box::new(Value(2)),
+          Box::new(Add(Box::new(Value(2)), Box::new(Value(4))))
+        ))
+      ))
+    );
+
+    let sample = "5 + (4 * (2 + 1))";
+    assert_eq!(
+      parse(sample),
+      Some(Add(
+        Box::new(Value(5)),
+        Box::new(Mul(
+          Box::new(Value(4)),
+          Box::new(Add(Box::new(Value(2)), Box::new(Value(1))))
+        ))
+      ))
+    )
   }
 
   #[test]
