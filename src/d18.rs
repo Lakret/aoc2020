@@ -17,10 +17,17 @@ pub enum Expr {
 
 use Expr::*;
 
-// returns Some((number, consumed_count)) or None
-fn number(input: &str) -> Option<(Expr, usize)> {
-  dbg!(input);
+impl Expr {
+  fn eval(&self) -> u64 {
+    match self {
+      Value(x) => *x,
+      Add(lhs, rhs) => lhs.eval() + rhs.eval(),
+      Mul(lhs, rhs) => lhs.eval() * rhs.eval(),
+    }
+  }
+}
 
+fn number(input: &str) -> Option<(Expr, usize)> {
   let digits = input.chars().take_while(|ch| ch.is_ascii_digit()).collect::<String>();
   if digits.is_empty() {
     None
@@ -32,8 +39,6 @@ fn number(input: &str) -> Option<(Expr, usize)> {
 }
 
 fn op(lhs: Expr, input: &str) -> Option<(Option<Expr>, usize)> {
-  dbg!(input);
-
   if input.len() > 0 {
     if &input[..1] == ")" {
       Some((None, 0))
@@ -41,7 +46,6 @@ fn op(lhs: Expr, input: &str) -> Option<(Option<Expr>, usize)> {
       match &input[0..1] {
         "+" => match expr(&input[1..]) {
           Some((rhs, right_consumed)) => {
-            println!("Got + rhs = {:?}", &rhs);
             let expr = Add(Box::new(lhs), Box::new(rhs));
             let consumed = right_consumed + 1;
             Some((Some(expr), consumed))
@@ -50,7 +54,6 @@ fn op(lhs: Expr, input: &str) -> Option<(Option<Expr>, usize)> {
         },
         "*" => match expr(&input[1..]) {
           Some((rhs, right_consumed)) => {
-            println!("Got * rhs = {:?}", &rhs);
             let expr = Mul(Box::new(lhs), Box::new(rhs));
             let consumed = right_consumed + 1;
             Some((Some(expr), consumed))
@@ -65,22 +68,10 @@ fn op(lhs: Expr, input: &str) -> Option<(Option<Expr>, usize)> {
   }
 }
 
-// (2 + 6) * 2 + 2 + 4
-// Mul(
-//   Add(Value(2), Value(6)),
-//   Add(Value(2),
-//     Add(Value(2), Value(4))))
-
 fn expr(input: &str) -> Option<(Expr, usize)> {
-  dbg!(input);
-
   if &input[0..1] == "(" {
-    dbg!(&input[1..]);
-
     match expr(&input[1..]) {
       Some((inner, consumed)) => {
-        dbg!(&inner);
-
         if input.len() > 1 + consumed && &input[consumed + 1..consumed + 2] == ")" {
           let consumed = consumed + 2;
 
@@ -101,14 +92,8 @@ fn expr(input: &str) -> Option<(Expr, usize)> {
   } else {
     match number(input) {
       Some((lhs, left_consumed)) => match op(lhs.clone(), &input[left_consumed..]) {
-        Some((Some(expr), right_consumed)) => {
-          dbg!(&expr);
-          Some((expr, left_consumed + right_consumed))
-        }
-        Some((None, _)) => {
-          dbg!("None in expr");
-          Some((lhs, left_consumed))
-        }
+        Some((Some(expr), right_consumed)) => Some((expr, left_consumed + right_consumed)),
+        Some((None, _)) => Some((lhs, left_consumed)),
         None => None,
       },
       None => None,
@@ -192,6 +177,14 @@ mod tests {
         ))
       ))
     )
+  }
+
+  #[test]
+  fn eval_works() {
+    let sample = "1 + 2 * 3 + 4 * 5 + 6";
+    let expr = parse(sample).unwrap();
+    dbg!(&expr);
+    assert_eq!(expr.eval(), 71);
   }
 
   #[test]
