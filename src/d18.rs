@@ -1,113 +1,120 @@
 pub fn solve(input: &str) -> Option<Box<u64>> {
-  let expr = parse(input);
-  dbg!(expr);
-  None
+  let result: u64 = input
+    .trim_end()
+    .split('\n')
+    .map(|line| {
+      let tokens = Token::parse(line);
+      eval_tokens(&tokens)
+    })
+    .sum();
+
+  Some(Box::new(result))
 }
 
 pub fn solve2(input: &str) -> Option<Box<usize>> {
   None
 }
 
+fn eval_tokens(tokens: &Vec<Token>) -> u64 {
+  let mut ops_stack: Vec<Token> = vec![];
+  let mut nums_stack: Vec<u64> = vec![];
+
+  for token in tokens.iter() {
+    match token {
+      Num(x) => try_perform_op(&mut ops_stack, *x, &mut nums_stack),
+      Parens(y) => {
+        let x = eval_tokens(y);
+        try_perform_op(&mut ops_stack, x, &mut nums_stack);
+      }
+      operation => ops_stack.push(operation.clone()),
+    }
+  }
+
+  nums_stack.pop().unwrap()
+}
+
+fn try_perform_op(ops_stack: &mut Vec<Token>, value: u64, nums_stack: &mut Vec<u64>) {
+  match ops_stack.pop() {
+    None => nums_stack.push(value),
+    Some(Plus) => {
+      let prev = nums_stack.pop().unwrap();
+      nums_stack.push(prev + value);
+    }
+    Some(Star) => {
+      let prev = nums_stack.pop().unwrap();
+      nums_stack.push(prev * value);
+    }
+    unexpected => panic!("ops_stack should only contain Plus & Star, got: {:?}", unexpected),
+  }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expr {
-  Value(u64),
-  Add(Box<Expr>, Box<Expr>),
-  Mul(Box<Expr>, Box<Expr>),
+pub enum Token {
+  Num(u64),
+  Plus,
+  Star,
+  Parens(Vec<Token>),
 }
 
-use Expr::*;
+use Token::*;
 
-impl Expr {
-  fn eval(&self) -> u64 {
-    match self {
-      Value(x) => *x,
-      Add(lhs, rhs) => lhs.eval() + rhs.eval(),
-      Mul(lhs, rhs) => lhs.eval() * rhs.eval(),
-    }
-  }
-}
+impl Token {
+  fn parse(input: &str) -> Vec<Token> {
+    let mut lexems = input
+      .trim_end()
+      .split(' ')
+      .flat_map(|lexem| {
+        if lexem.starts_with("(") {
+          let parens_count = lexem.chars().filter(|ch| *ch == '(').count();
+          let mut num_and_parens = vec!["("; parens_count];
 
-fn number(input: &str) -> Option<(Expr, usize)> {
-  let digits = input.chars().take_while(|ch| ch.is_ascii_digit()).collect::<String>();
-  if digits.is_empty() {
-    None
-  } else {
-    let consumed = digits.len();
-    let number = digits.parse::<u64>().unwrap();
-    Some((Value(number), consumed))
-  }
-}
+          let mut num = vec![lexem.trim_start_matches('(')];
 
-fn op(lhs: Expr, input: &str) -> Option<(Option<Expr>, usize)> {
-  if input.len() > 0 {
-    if &input[..1] == ")" {
-      Some((None, 0))
-    } else {
-      match &input[0..1] {
-        "+" => match expr(&input[1..]) {
-          Some((rhs, right_consumed)) => {
-            let expr = Add(Box::new(lhs), Box::new(rhs));
-            let consumed = right_consumed + 1;
-            Some((Some(expr), consumed))
-          }
-          None => None,
-        },
-        "*" => match expr(&input[1..]) {
-          Some((rhs, right_consumed)) => {
-            let expr = Mul(Box::new(lhs), Box::new(rhs));
-            let consumed = right_consumed + 1;
-            Some((Some(expr), consumed))
-          }
-          None => None,
-        },
-        _ => None,
-      }
-    }
-  } else {
-    Some((None, 0))
-  }
-}
+          num_and_parens.append(&mut num);
+          num_and_parens
+        } else if lexem.ends_with(")") {
+          let mut num_and_parens = vec![lexem.trim_end_matches(')')];
 
-fn expr(input: &str) -> Option<(Expr, usize)> {
-  if &input[0..1] == "(" {
-    match expr(&input[1..]) {
-      Some((inner, consumed)) => {
-        if input.len() > 1 + consumed && &input[consumed + 1..consumed + 2] == ")" {
-          let consumed = consumed + 2;
+          let parens_count = lexem.chars().filter(|ch| *ch == ')').count();
+          let mut parens = vec![")"; parens_count];
 
-          if input.len() > consumed {
-            match op(inner.clone(), &input[consumed..]) {
-              Some((Some(expr), right_consumed)) => Some((expr, consumed + right_consumed)),
-              _ => Some((inner, consumed)),
-            }
-          } else {
-            Some((inner, consumed))
-          }
+          num_and_parens.append(&mut parens);
+          num_and_parens
         } else {
-          None
+          vec![lexem]
         }
-      }
-      None => None,
-    }
-  } else {
-    match number(input) {
-      Some((lhs, left_consumed)) => match op(lhs.clone(), &input[left_consumed..]) {
-        Some((Some(expr), right_consumed)) => Some((expr, left_consumed + right_consumed)),
-        Some((None, _)) => Some((lhs, left_consumed)),
-        None => None,
-      },
-      None => None,
-    }
+      })
+      .rev()
+      .collect::<Vec<_>>();
+
+    parse_inner(&mut lexems)
   }
 }
 
-fn parse(input: &str) -> Option<Expr> {
-  let input = input.chars().filter(|ch| *ch != ' ').collect::<String>();
+fn parse_inner(lexems: &mut Vec<&str>) -> Vec<Token> {
+  let mut result = vec![];
 
-  match expr(&input) {
-    Some((expr, _consumed)) => Some(expr),
-    None => None,
+  while let Some(lexem) = lexems.pop() {
+    match lexem {
+      "+" => result.push(Plus),
+      "*" => result.push(Star),
+      "(" => {
+        let tokens_in_parens = parse_inner(lexems);
+        result.push(Parens(tokens_in_parens))
+      }
+      ")" => return result,
+      _ => {
+        let num = parse_num(lexem);
+        result.push(num)
+      }
+    }
   }
+
+  result
+}
+
+fn parse_num(num: &str) -> Token {
+  Num(num.parse::<u64>().unwrap())
 }
 
 #[cfg(test)]
@@ -117,83 +124,55 @@ mod tests {
 
   #[test]
   fn parser_works() {
-    let sample = "128 + 6";
-    let expr = Add(Box::new(Value(128)), Box::new(Value(6)));
-    assert_eq!(parse(sample), Some(expr));
-
-    let sample = "3 * 16";
-    let expr = Mul(Box::new(Value(3)), Box::new(Value(16)));
-    assert_eq!(parse(sample), Some(expr));
-
-    let sample = "3 * 16 + 5";
-    let expr = Mul(
-      Box::new(Value(3)),
-      Box::new(Add(Box::new(Value(16)), Box::new(Value(5)))),
-    );
-    assert_eq!(parse(sample), Some(expr));
-
-    let sample = "3 * 16 + 5 + 7";
-    let expr = Mul(
-      Box::new(Value(3)),
-      Box::new(Add(
-        Box::new(Value(16)),
-        Box::new(Add(Box::new(Value(5)), Box::new(Value(7)))),
-      )),
-    );
-    assert_eq!(parse(sample), Some(expr));
-
-    let sample = "(2 + 6)";
-    assert_eq!(parse(sample), Some(Add(Box::new(Value(2)), Box::new(Value(6)))));
-
-    let sample = "(2 + 6) * 2";
+    let tokens = Token::parse("1 + (2 * 3) + (4 * (5 + 6))");
     assert_eq!(
-      parse(sample),
-      Some(Mul(
-        Box::new(Add(Box::new(Value(2)), Box::new(Value(6)))),
-        Box::new(Value(2))
-      ))
+      tokens,
+      vec![
+        Num(1),
+        Plus,
+        Parens(vec![Num(2), Star, Num(3)]),
+        Plus,
+        Parens(vec![Num(4), Star, Parens(vec![Num(5), Plus, Num(6)])])
+      ]
     );
 
-    let sample = "(2 + 6) * 2 + 2 + 4";
+    let tokens = Token::parse("1 + (((2 * 3) + 4) * 5)");
     assert_eq!(
-      parse(sample),
-      Some(Mul(
-        Box::new(Add(Box::new(Value(2)), Box::new(Value(6)))),
-        Box::new(Add(
-          Box::new(Value(2)),
-          Box::new(Add(Box::new(Value(2)), Box::new(Value(4))))
-        ))
-      ))
+      tokens,
+      vec![
+        Num(1),
+        Plus,
+        Parens(vec![
+          Parens(vec![Parens(vec![Num(2), Star, Num(3)]), Plus, Num(4)]),
+          Star,
+          Num(5)
+        ]),
+      ]
     );
-
-    let sample = "5 + (4 * (2 + 1))";
-    assert_eq!(
-      parse(sample),
-      Some(Add(
-        Box::new(Value(5)),
-        Box::new(Mul(
-          Box::new(Value(4)),
-          Box::new(Add(Box::new(Value(2)), Box::new(Value(1))))
-        ))
-      ))
-    )
-  }
-
-  #[test]
-  fn eval_works() {
-    let sample = "1 + 2 * 3 + 4 * 5 + 6";
-    let expr = parse(sample).unwrap();
-    dbg!(&expr);
-    assert_eq!(expr.eval(), 71);
   }
 
   #[test]
   fn part_one_solved() {
-    // let sample = "1 + (2 * 3) + (4 * (5 + 6))";
-    // assert_eq!(solve(sample), Some(Box::new(51)));
+    let sample = "1 + (2 * 3) + (4 * (5 + 6))";
+    assert_eq!(solve(sample), Some(Box::new(51)));
 
-    // let input = fs::read_to_string("inputs/d18").unwrap();
-    // assert_eq!(solve(&input), None);
+    let sample = "1 + 2 * 3 + 4 * 5 + 6";
+    assert_eq!(solve(sample), Some(Box::new(71)));
+
+    let sample = "2 * 3 + (4 * 5)";
+    assert_eq!(solve(sample), Some(Box::new(26)));
+
+    let sample = "5 + (8 * 3 + 9 + 3 * 4 * 3)";
+    assert_eq!(solve(sample), Some(Box::new(437)));
+
+    let sample = "5 * 9 * (7 * 3 * 3 + 9 * 3 + (8 + 6 * 4))";
+    assert_eq!(solve(sample), Some(Box::new(12240)));
+
+    let sample = "((2 + 4 * 9) * (6 + 9 * 8 + 6) + 6) + 2 + 4 * 2";
+    assert_eq!(solve(sample), Some(Box::new(13632)));
+
+    let input = fs::read_to_string("inputs/d18").unwrap();
+    assert_eq!(solve(&input), None);
   }
 
   #[test]
