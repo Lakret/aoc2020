@@ -63,6 +63,9 @@ fn main() {
   commands.insert("d11_2_debug", |input: &str| {
     d11::solve2_debug(input).map(|x| (x as Box<dyn std::fmt::Debug>))
   });
+  commands.insert("d17_3", |input: &str| {
+    d17::go_bananas(input).map(|x| (x as Box<dyn std::fmt::Debug>))
+  });
 
   loop {
     let readline = rl.readline(">>> ");

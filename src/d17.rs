@@ -156,6 +156,24 @@ where
   }
 }
 
+/// Just for fun, run 5 steps in 5 dimensions.
+pub fn go_bananas(input: &str) -> Option<Box<()>> {
+  let mut cube = Cube::parse(&input, 5);
+
+  for turn in 0..5 {
+    cube = cube.advance();
+    println!(
+      "{}-dimensional cube has {} active cells at turn {}.\nBorders: {:?}.\n",
+      cube.dimensions,
+      cube.active.len(),
+      turn + 1,
+      &cube.border
+    );
+  }
+
+  None
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
