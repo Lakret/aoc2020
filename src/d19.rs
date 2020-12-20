@@ -2,15 +2,74 @@ use regex::Regex;
 
 pub fn solve(input: &str) -> Option<Box<usize>> {
   let (rules, messages) = parse(input);
-  let expanded = expand(&rules);
+  let expanded = expand(&rules, 0);
+  let expanded = format!("^{}$", expanded);
   let regex = Regex::new(&expanded).unwrap();
 
   let matching = messages.iter().filter(|message| regex.is_match(message)).count();
   Some(Box::new(matching))
 }
 
+/// New rules:
+///
+/// `8: 42` -(changed to)-> `8: 42 | 42 8`
+/// (i.e., 8 is now r`42+`).
+///
+/// `11: 42 31` -(changed to)-> `11: 42 31 | 42 11 31`
+/// (i.e., 11 is now r`42 (recurse 11) 31`)
+///
+/// 0: 8 11 is the entrypoint, and 8 and 11 are not used in any other rules.
+///
+/// Which means that the whole match condition can be expressed as:
+///
+/// 0 = r`^42+ (?<x>42 (recurse x) 31)$`
+///
+/// And we can test for a match with:
+///
+///   - match r`^.* (31)+$` (that's `starts_42_ends_31` regex);
+///   - count number of 31 regex matches (via `rule31` regex)
+///   - we know that the remaining string should match at least the same number of 42 matches
+///     (`rule42` regex) in the beginning + at least one more time.
+///     If that is satisfied, the string matches.
 pub fn solve2(input: &str) -> Option<Box<usize>> {
-  None
+  let (rules, messages) = parse(input);
+  let rule42_non_capturing = expand(&rules, 42);
+  let capturing_rule42 = format!("({})", &rule42_non_capturing);
+  let rule42 = Regex::new(&capturing_rule42).unwrap();
+
+  let rule31_non_capturing = expand(&rules, 31);
+  let capturing_rule31 = format!("({})", &rule31_non_capturing);
+  let rule31 = Regex::new(&capturing_rule31).unwrap();
+
+  let starts_42_ends_31 = format!(
+    r"^(?P<start_42>(?:{})+)(?P<end_31>(?:{})+)$",
+    rule42_non_capturing, rule31_non_capturing
+  );
+  let start_and_end31 = Regex::new(&starts_42_ends_31).unwrap();
+
+  let matching = messages
+    .iter()
+    .filter(|message| matches_new_rules(&start_and_end31, &rule31, &rule42, message))
+    .count();
+  Some(Box::new(matching))
+}
+
+fn matches_new_rules(starts_42_ends_31: &Regex, rule31: &Regex, rule42: &Regex, message: &str) -> bool {
+  if starts_42_ends_31.is_match(message) {
+    let capture = starts_42_ends_31.captures_iter(message).collect::<Vec<_>>();
+
+    if capture.len() == 1 {
+      let capture = capture.first().unwrap();
+      let count_31 = rule31.find_iter(&capture["end_31"]).count();
+      let count_42 = rule42.find_iter(&capture["start_42"]).count();
+
+      count_42 >= count_31 + 1
+    } else {
+      false
+    }
+  } else {
+    false
+  }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,9 +80,9 @@ enum Rule {
 
 use Rule::*;
 
-/// Expands `rules` to a regex string literal.
-fn expand(rules: &Vec<Rule>) -> String {
-  format!("^{}$", expand_inner(rules, &rules[0]))
+/// Expands `rule` at `idx` to a non-capturing Regex string literal.
+fn expand(rules: &Vec<Rule>, idx: usize) -> String {
+  expand_inner(rules, &rules[idx])
 }
 
 fn expand_inner(rules: &Vec<Rule>, rule: &Rule) -> String {
@@ -42,7 +101,7 @@ fn expand_inner(rules: &Vec<Rule>, rule: &Rule) -> String {
         .collect::<Vec<_>>();
 
       if expanded_alternatives.len() > 1 {
-        format!("({})", expanded_alternatives.join("|"))
+        format!("(?:{})", expanded_alternatives.join("|"))
       } else {
         expanded_alternatives.join("")
       }
@@ -125,7 +184,10 @@ mod tests {
 
   #[test]
   fn part_two_solved() {
+    let input = fs::read_to_string("inputs/sample19_2").unwrap();
+    assert_eq!(solve2(&input), Some(Box::new(12)));
+
     let input = fs::read_to_string("inputs/d19").unwrap();
-    assert_eq!(solve2(&input), None);
+    assert_eq!(solve2(&input), Some(Box::new(436)));
   }
 }
