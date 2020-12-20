@@ -2,11 +2,11 @@ use regex::Regex;
 
 pub fn solve(input: &str) -> Option<Box<usize>> {
   let (rules, messages) = parse(input);
+  let expanded = expand(&rules);
+  let regex = Regex::new(&expanded).unwrap();
 
-  dbg!(&rules);
-  dbg!(&messages);
-
-  None
+  let matching = messages.iter().filter(|message| regex.is_match(message)).count();
+  Some(Box::new(matching))
 }
 
 pub fn solve2(input: &str) -> Option<Box<usize>> {
@@ -14,13 +14,41 @@ pub fn solve2(input: &str) -> Option<Box<usize>> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-// TODO: compile as regex?
 enum Rule {
   Letter(String),
   Alternatives(Vec<Vec<usize>>),
 }
 
 use Rule::*;
+
+/// Expands `rules` to a regex string literal.
+fn expand(rules: &Vec<Rule>) -> String {
+  format!("^{}$", expand_inner(rules, &rules[0]))
+}
+
+fn expand_inner(rules: &Vec<Rule>, rule: &Rule) -> String {
+  match rule {
+    Letter(x) => x.to_string(),
+    Alternatives(alternatives) => {
+      let expanded_alternatives = alternatives
+        .iter()
+        .map(|alternative| {
+          alternative
+            .iter()
+            .map(|idx| expand_inner(rules, &rules[*idx]))
+            .collect::<Vec<_>>()
+            .join("")
+        })
+        .collect::<Vec<_>>();
+
+      if expanded_alternatives.len() > 1 {
+        format!("({})", expanded_alternatives.join("|"))
+      } else {
+        expanded_alternatives.join("")
+      }
+    }
+  }
+}
 
 fn parse(input: &str) -> (Vec<Rule>, Vec<String>) {
   match &input.trim_end().split("\n\n").collect::<Vec<_>>()[..] {
@@ -88,8 +116,11 @@ mod tests {
 
   #[test]
   fn part_one_solved() {
-    // let input = fs::read_to_string("inputs/d19").unwrap();
-    // assert_eq!(solve(&input), None);
+    let input = fs::read_to_string("inputs/sample19").unwrap();
+    assert_eq!(solve(&input), Some(Box::new(2)));
+
+    let input = fs::read_to_string("inputs/d19").unwrap();
+    assert_eq!(solve(&input), Some(Box::new(224)));
   }
 
   #[test]
