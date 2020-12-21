@@ -161,7 +161,7 @@ fn arrange(
   // cache this to avoid re-generating it all the time
   let transforms = Transform::all_transforms();
   let size = size(tiles);
-  let mut all_coords = (0..size)
+  let all_coords = (0..size)
     .flat_map(|row_id| (0..size).map(|col_id| (row_id, col_id)).collect::<Vec<_>>())
     .collect::<Vec<_>>();
 
@@ -201,53 +201,59 @@ fn arrange(
       })
       .collect::<HashSet<_>>();
 
+    let mut possible_moves = vec![];
+
     // try to apply all possible transforms != current transform to the current tile
     for &transform in &transforms {
       if transform != curr_transform && !local_tabu.contains(&(tile_id, transform)) {
         assignment[row_id][col_id] = (tile_id, transform);
 
         // if some of the improves the conflicts count, we can move on to a next tile
-        let new_conflicts = get_conflicts(tiles, &assignment, coords);
-        if new_conflicts.len() < local_conflicts_count {
-          tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
-
-          improved = true;
-          break;
+        let new_conflicts_count = get_conflicts(tiles, &assignment, coords).len();
+        if new_conflicts_count < local_conflicts_count {
+          possible_moves.push(((coords, transform), new_conflicts_count));
         }
       }
     }
 
-    // if no improvement happen via transforms, try to swap with some other cell
-    if !improved {
-      // add some tasty randomness to avoid pathological cases
-      all_coords.shuffle(rng);
+    // revert to the original transform
+    assignment[row_id][col_id] = (tile_id, curr_transform);
 
-      for &another_coords in all_coords.iter() {
-        let another_tile_id_and_transform = assignment[another_coords.0][another_coords.1];
-        if another_coords != coords && !local_tabu.contains(&another_tile_id_and_transform) {
-          // TODO: shall we also count number of conflicts in `another_coords`
-          // and only swap when both this and another cell's conflicts count improve?
-          // TODO: global conflict counts to check improvement instead of local conflict counts?
-          // TODO: should we select the most optimal transform / position, instead of breaking on the first
-          // that improves things slightly?
-          let another_conflicts = get_conflicts(tiles, &assignment, another_coords);
+    for &another_coords in all_coords.iter() {
+      let another_tile_id_and_transform = assignment[another_coords.0][another_coords.1];
+      if another_coords != coords && !local_tabu.contains(&another_tile_id_and_transform) {
+        let another_conflicts = get_conflicts(tiles, &assignment, another_coords).len();
 
+        swap(&mut assignment, (row_id, col_id), another_coords);
+
+        // same, break as soon as we improve
+        let new_conflicts = get_conflicts(tiles, &assignment, coords);
+        let new_another_conflicts = get_conflicts(tiles, &assignment, another_coords).len();
+        if new_conflicts.len() < local_conflicts_count && new_another_conflicts <= another_conflicts {
+          // TODO: should we normalize the cost here by `/2`, since we're counting both tiles?
+          // TODO: should we try global transforms again?
+          possible_moves.push((
+            (another_coords, Transform::default()),
+            new_conflicts.len() + new_another_conflicts,
+          ));
+
+          // revert to the original tile
           swap(&mut assignment, (row_id, col_id), another_coords);
-
-          // same, break as soon as we improve
-          let new_conflicts = get_conflicts(tiles, &assignment, coords);
-          let new_another_conflicts = get_conflicts(tiles, &assignment, another_coords);
-          if new_conflicts.len() < local_conflicts_count && new_another_conflicts <= another_conflicts {
-            tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
-
-            improved = true;
-            break;
-          } else {
-            // we need to undo if no improvement was made
-            swap(&mut assignment, (row_id, col_id), another_coords);
-          }
         }
       }
+    }
+
+    // find the best move
+    possible_moves.sort_by_key(|(_another_coords, conflicts_count)| *conflicts_count);
+    if let Some(((another_coords, transform), _best_move_conflicts_count)) = possible_moves.pop() {
+      if another_coords != coords {
+        swap(&mut assignment, (row_id, col_id), another_coords);
+      } else {
+        assignment[row_id][col_id] = (tile_id, transform);
+      }
+
+      tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
+      improved = true;
     }
 
     // if still no improvements, do a random swap to break ties.
@@ -600,13 +606,14 @@ mod tests {
     let input = fs::read_to_string("inputs/sample20").unwrap();
     assert_eq!(solve(&input), Some(Box::new(20899048083289)));
 
-    // let input = fs::read_to_string("inputs/d20").unwrap();
-    // assert_eq!(solve(&input), None);
+    let input = fs::read_to_string("inputs/d20").unwrap();
+    assert_eq!(solve(&input), Some(Box::new(79412832860579)));
   }
 
   #[test]
   fn part_two_solved() {
-    let input = fs::read_to_string("inputs/d20").unwrap();
-    assert_eq!(solve2(&input), None);
+    // TODO:
+    // let input = fs::read_to_string("inputs/d20").unwrap();
+    // assert_eq!(solve2(&input), None);
   }
 }
