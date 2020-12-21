@@ -15,5 +15,5 @@ fnv = "*"
 rand = "*"
 rayon = "*"
 
-# [profile.test]
-# opt-level = 3
+[profile.test]
+opt-level = 3

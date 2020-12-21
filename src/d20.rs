@@ -37,6 +37,7 @@ pub fn solve2(input: &str) -> Option<Box<u64>> {
     .map(|(tile_id, _match_count)| tile_id)
     .collect::<HashSet<_>>();
 
+  // FIXME: it seems that we have the same tile returned for each cell on sample input!
   match min_conflicts(&tiles, 4, 50, 1_000, 2_000_000, 4, None, Some(corners)) {
     Some(assignment) => {
       dbg!(&assignment[0..size(&tiles)]);
@@ -186,7 +187,6 @@ fn arrange(
     let (row_id, col_id) = coords;
     let (tile_id, curr_transform) = assignment[row_id][col_id];
 
-    let mut improved = false;
     let local_conflicts_count = conflicted_coords.len();
 
     let local_tabu = tabu
@@ -221,6 +221,7 @@ fn arrange(
 
     for &another_coords in all_coords.iter() {
       let another_tile_id_and_transform = assignment[another_coords.0][another_coords.1];
+
       if another_coords != coords && !local_tabu.contains(&another_tile_id_and_transform) {
         let another_conflicts = get_conflicts(tiles, &assignment, another_coords).len();
 
@@ -253,18 +254,12 @@ fn arrange(
       }
 
       tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
-      improved = true;
-    }
-
-    // if still no improvements, do a random swap to break ties.
-    // we don't check if it improves or makes the situation worse,
-    // to escape local minimums.
-    if !improved {
+    } else {
+      // if still no improvements, do a random swap to break ties.
       let swap_row_id = rng.gen_range(0, size);
       let swap_col_id = rng.gen_range(0, size);
 
       swap(&mut assignment, (row_id, col_id), (swap_row_id, swap_col_id));
-
       tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
     }
 
