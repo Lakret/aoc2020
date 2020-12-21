@@ -1,85 +1,232 @@
 use std::collections::HashMap;
+use rand::seq::{SliceRandom, IteratorRandom};
+use rand::{Rng, thread_rng};
+use rand::rngs::ThreadRng;
 
 pub fn solve(input: &str) -> Option<Box<u64>> {
-  let tiles = parse(input);
-  let result = arrange(&tiles);
+  // hyperparams
+  let max_moves = 100_000;
+  let max_iterations = 100;
 
-  None
+  let tiles = parse(input);
+  for iteration in 0..max_iterations {
+    println!("Iteration {}...", iteration + 1);
+    if let (Some(assignment), moves) = arrange(&tiles, max_moves) {
+      let (first_row, last_row) = (assignment[0].clone(), assignment.last().unwrap());
+      let answer = first_row[0].0 * first_row.last().unwrap().0 * last_row[0].0 * last_row.last().unwrap().0;
+
+      println!("Solved at iteration {}, in {} moves.", iteration + 1, moves);
+      return Some(Box::new(answer));
+    }
+  }
+
+  return None;
 }
 
 pub fn solve2(input: &str) -> Option<Box<u64>> {
   None
 }
 
-fn arrange(tiles: &HashMap<u64, Tile>) -> Vec<Vec<u64>> {
-  let size = (tiles.values().len() as f64).sqrt() as u64;
+/// To avoid moving vectors of strings around all the time.
+type TilesMap = HashMap<u64, Tile>;
 
-  // domains
-  let row_range = 0..size;
-  let col_range = 0..size;
-  let rotation_range = 0..4;
-  let flip_range = false..true;
+/// `[[(tile_id, Transform); row_size]; col_size]`
+type Assignment = Vec<Vec<(u64, Transform)>>;
 
-  // TODO: initialize a random initial arrangement
-  // TODO: use min-conflicts and `neighbours_constraint` to find a solution
-  let positions: HashMap<u64, Position> = HashMap::new();
+type Coords = (usize, usize);
 
-  todo!()
-}
+fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize) -> (Option<Assignment>, usize) {
+  // cache this to avoid re-generating it all the time
+  let transforms = Transform::all_transforms();
+  let size = size(tiles);
 
-fn neighbours_constraint(tiles: &HashMap<u64, Tile>, tile1: u64, pos1: &Position, tile2: u64, pos2: &Position) -> bool {
-  let first_tile = &tiles[&tile1];
-  let second_tile = &tiles[&tile2];
+  // initial random assignment
+  let mut rng = thread_rng();
+  let mut assignment = random_assignment(tiles, &mut rng);
 
-  if pos1.row == pos2.row && pos1.col == pos2.col && tile1 == tile2 {
-    // same cell cannot be occupied by two different tiles
-    false
-  } else if pos1.row == pos2.row {
-    // neighbours on the same rows should have a matching edge
-    if pos1.col < pos2.col {
-      // ..., tile1, tile2, ... arrangement
-      first_tile.right_edge(pos1) == second_tile.left_edge(pos2)
-    } else {
-      neighbours_constraint(tiles, tile2, pos2, tile1, pos1)
+  // try to improve while there are conflicts / until max moves reached.
+  let mut moves = 0;
+  let mut conflicts = get_all_conflicts(tiles, &assignment);
+  while !conflicts.is_empty() {
+    // don't get stuck in a pathological case
+    moves += 1;
+    if moves > max_moves {
+      return (None, moves);
     }
-  } else if pos1.col == pos2.col {
-    // neighbours across rows should have a matching edge
-    if pos1.row < pos2.row {
-      //       ...
-      // ..., tile1, ...
-      // ..., tile2, ...
-      //       ...
-      first_tile.bottom_edge(pos1) == second_tile.top_edge(pos2)
-    } else {
-      neighbours_constraint(tiles, tile2, pos2, tile1, pos1)
+
+    // select random conflicted variable
+    let (coords, conflicted_coords) = conflicts.into_iter().choose(&mut rng).unwrap();
+    let (row_id, col_id) = coords;
+    let (tile_id, curr_transform) = assignment[row_id][col_id].clone();
+
+    let mut improved = false;
+    let local_conflicts_count = conflicted_coords.len();
+    // try to apply all possible transforms != current transform to the current tile
+    for transform in &transforms {
+      if transform != &curr_transform {
+        assignment[row_id][col_id] = (tile_id, transform.clone());
+
+        // if some of the improves the conflicts count, we can move on to a next tile
+        let new_conflicts = get_conflicts(tiles, &assignment, coords);
+        if new_conflicts.len() < local_conflicts_count {
+          improved = true;
+          break;
+        }
+      }
     }
-  } else {
-    // no rule can be broken by tiles without a common edge
-    true
+
+    // if no improvement happen via transforms, try to swap with conflicted
+    if !improved {
+      for (swap_row_id, swap_col_id) in conflicted_coords {
+        let swap_tile = assignment[swap_row_id][swap_col_id].clone();
+
+        assignment[row_id][col_id] = swap_tile;
+        assignment[swap_row_id][swap_col_id] = (tile_id, curr_transform.clone());
+
+        // same, break as soon as we improve
+        let new_conflicts = get_conflicts(tiles, &assignment, coords);
+        if new_conflicts.len() < local_conflicts_count {
+          improved = true;
+          break;
+        } else {
+          // we need to undo if no improvement was made
+          assignment[row_id][col_id] = (tile_id, curr_transform.clone());
+          assignment[swap_row_id][swap_col_id] = swap_tile;
+        }
+      }
+    }
+
+    // if still no improvements, do a random swap to break ties.
+    // we don't check if it improves or makes the situation worse,
+    // to escape local minimums.
+    if !improved {
+      let swap_row_id = rng.gen_range(0, size);
+      let swap_col_id = rng.gen_range(0, size);
+
+      let swap_tile = assignment[swap_row_id][swap_col_id].clone();
+
+      assignment[row_id][col_id] = swap_tile;
+      assignment[swap_row_id][swap_col_id] = (tile_id, curr_transform.clone());
+    }
+
+    conflicts = get_all_conflicts(tiles, &assignment);
   }
+
+  (Some(assignment), moves)
 }
 
+fn size(tiles: &HashMap<u64, Tile>) -> usize {
+  (tiles.values().len() as f64).sqrt() as usize
+}
+
+fn random_assignment(tiles: &HashMap<u64, Tile>, rng: &mut ThreadRng) -> Assignment {
+  let mut tile_ids = tiles
+    .keys()
+    .copied()
+    .map(|tile_id| (tile_id, Transform::default()))
+    .collect::<Vec<_>>();
+  tile_ids.shuffle(rng);
+
+  let size = size(tiles);
+  let mut assignment = Vec::with_capacity(size);
+  for row_id in 0..size {
+    let row = tile_ids[row_id * size..(row_id + 1) * size].to_vec();
+    assignment.push(row);
+  }
+
+  assignment
+}
+
+/// Returns a map of conflicts, mapping coordinates of a cell with conflicts in the current `assignment`
+/// to a vector of coords of its left, top, or both left & top neighbours with which it conflicts.
+fn get_all_conflicts(tiles: &TilesMap, assignment: &Assignment) -> HashMap<Coords, Vec<Coords>> {
+  let mut conflicts = HashMap::new();
+  let size = assignment.len();
+
+  for row_id in 0..size {
+    for col_id in 0..size {
+      let coords = (row_id, col_id);
+      let local_conflicts = get_conflicts(tiles, assignment, coords);
+      if !local_conflicts.is_empty() {
+        conflicts.insert(coords, local_conflicts);
+      }
+    }
+  }
+
+  conflicts
+}
+
+/// Gets a vector (possibly empty) of conflicts for a tile with `coords` in `assignment`.
+fn get_conflicts(tiles: &TilesMap, assignment: &Assignment, coords: Coords) -> Vec<Coords> {
+  let (row_id, col_id) = coords;
+  let (curr_tile_id, curr_tile_transform) = &assignment[row_id][col_id];
+  let curr_tile = tiles.get(curr_tile_id).unwrap();
+  let mut conflicts = vec![];
+
+  // check for conflict with top tile, if it exists
+  if row_id > 0 {
+    let (top_tile_id, top_tile_transform) = &assignment[row_id - 1][col_id];
+    let top_tile = tiles.get(top_tile_id).unwrap();
+
+    if curr_tile.top_edge(curr_tile_transform) != top_tile.bottom_edge(top_tile_transform) {
+      conflicts.push((row_id - 1, col_id));
+    }
+  }
+
+  // check for conflict with left tile, if it exists
+  if col_id > 0 {
+    let (left_tile_id, left_tile_transform) = &assignment[row_id][col_id - 1];
+    let left_tile = tiles.get(left_tile_id).unwrap();
+
+    if curr_tile.left_edge(curr_tile_transform) != left_tile.right_edge(left_tile_transform) {
+      conflicts.push((row_id, col_id - 1));
+    }
+  }
+
+  conflicts
+}
+
+/// `raw` is a vector of lines we've got as input
+/// `edges` is a vector of edges clockwise (`[top, right, bottom, left]`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct Tile {
   raw: Vec<String>,
-  // 0 - top, 1 - right, 2 - bottom, 3 - left
   edges: Vec<String>,
 }
 
 /// Rotations are counterclockwise, i.e.:
 /// 0 - no rotation, 1 - 90 left, 2 - 180, 3 - 270 left.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-struct Position {
-  row: usize,
-  col: usize,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct Transform {
   rotation: usize,
   flip_vertical: bool,
   flip_horizontal: bool,
 }
 
-impl Position {
+impl Transform {
+  /// Returns a vector of all possible transforms.
+  fn all_transforms() -> Vec<Transform> {
+    let mut transforms = Vec::with_capacity(16);
+
+    for rotation in 0..4 {
+      for &flip_vertical in &[false, true] {
+        for &flip_horizontal in &[false, true] {
+          let transform = Transform {
+            rotation,
+            flip_vertical,
+            flip_horizontal,
+          };
+
+          transforms.push(transform);
+        }
+      }
+    }
+
+    transforms
+  }
+
   /// Returns an array expressing edge_id and flip mappings for edges when
-  /// `Position` is applied:
+  /// `Transform` is applied:
   ///
   /// `[ (use_edge_with_this_id_instead_of_edge_0, reverse_chars), ... ]`
   ///
@@ -118,24 +265,24 @@ impl Position {
 }
 
 impl Tile {
-  fn top_edge(&self, pos: &Position) -> String {
-    self.edge_with_id_and_pos(0, pos)
+  fn top_edge(&self, transform: &Transform) -> String {
+    self.edge_with_id_and_pos(0, transform)
   }
 
-  fn right_edge(&self, pos: &Position) -> String {
-    self.edge_with_id_and_pos(1, pos)
+  fn right_edge(&self, transform: &Transform) -> String {
+    self.edge_with_id_and_pos(1, transform)
   }
 
-  fn bottom_edge(&self, pos: &Position) -> String {
-    self.edge_with_id_and_pos(2, pos)
+  fn bottom_edge(&self, transform: &Transform) -> String {
+    self.edge_with_id_and_pos(2, transform)
   }
 
-  fn left_edge(&self, pos: &Position) -> String {
-    self.edge_with_id_and_pos(3, pos)
+  fn left_edge(&self, transform: &Transform) -> String {
+    self.edge_with_id_and_pos(3, transform)
   }
 
-  fn edge_with_id_and_pos(&self, edge_id: usize, pos: &Position) -> String {
-    let (edge_id, reverse) = pos.edge_id_and_flip_map()[edge_id];
+  fn edge_with_id_and_pos(&self, edge_id: usize, transform: &Transform) -> String {
+    let (edge_id, reverse) = transform.edge_id_and_flip_map()[edge_id];
     if reverse {
       self.edges[edge_id].chars().rev().collect()
     } else {
@@ -193,16 +340,16 @@ mod tests {
     assert_eq!(&tile_2971.edges[3], left_edge);
 
     // default positions changes nothing
-    let default_position = Position::default();
+    let default_position = Transform::default();
     assert_eq!(tile_2971.top_edge(&default_position), top_edge);
     assert_eq!(tile_2971.right_edge(&default_position), right_edge);
     assert_eq!(tile_2971.bottom_edge(&default_position), bottom_edge);
     assert_eq!(tile_2971.left_edge(&default_position), left_edge);
 
     // verify that edges are mapped correctly after rotations
-    let rotate270 = Position {
+    let rotate270 = Transform {
       rotation: 3,
-      ..Position::default()
+      ..Transform::default()
     };
     assert_eq!(
       tile_2971.top_edge(&rotate270),
@@ -216,11 +363,11 @@ mod tests {
     assert_eq!(tile_2971.left_edge(&rotate270), bottom_edge);
 
     // should be the same as rotate270
-    let rotate90_flip_hor_and_ver = Position {
+    let rotate90_flip_hor_and_ver = Transform {
       rotation: 1,
       flip_horizontal: true,
       flip_vertical: true,
-      ..Position::default()
+      ..Transform::default()
     };
     assert_eq!(
       rotate90_flip_hor_and_ver.edge_id_and_flip_map(),
