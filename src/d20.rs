@@ -3,24 +3,45 @@ use rand::seq::{SliceRandom, IteratorRandom};
 use rand::{Rng, thread_rng};
 use rand::rngs::ThreadRng;
 
+use rayon::prelude::*;
+
 pub fn solve(input: &str) -> Option<Box<u64>> {
   // hyperparams
-  let max_moves = 100_000;
-  let max_iterations = 100;
+  let max_threads = 4;
+  let max_moves = 200_000;
+  let max_iterations = max_threads * 100;
 
   let tiles = parse(input);
-  for iteration in 0..max_iterations {
-    println!("Iteration {}...", iteration + 1);
+
+  (0..max_iterations).into_par_iter().find_map_any(|iteration| {
+    let thread_id = std::thread::current().id();
+    println!("[{:?}] Iteration {}...", thread_id, iteration + 1);
     if let (Some(assignment), moves) = arrange(&tiles, max_moves) {
       let (first_row, last_row) = (assignment[0].clone(), assignment.last().unwrap());
-      let answer = first_row[0].0 * first_row.last().unwrap().0 * last_row[0].0 * last_row.last().unwrap().0;
+      let (top_left, top_right) = (first_row[0], first_row.last().unwrap());
+      let (bottom_left, bottom_right) = (last_row[0], last_row.last().unwrap());
+      let answer = top_left.0 * top_right.0 * bottom_left.0 * bottom_right.0;
 
-      println!("Solved at iteration {}, in {} moves.", iteration + 1, moves);
+      println!(
+        "[{:?}] Corners: {:?}.",
+        thread_id,
+        vec![&top_left, top_right, &bottom_left, bottom_right]
+      );
+      println!(
+        "[{:?}] Solved at iteration {}, in {} moves: {}.",
+        thread_id,
+        iteration + 1,
+        moves,
+        answer
+      );
       return Some(Box::new(answer));
     }
-  }
 
-  return None;
+    return None;
+  })
+
+  // for iteration in 0..max_iterations {
+  // }
 }
 
 pub fn solve2(input: &str) -> Option<Box<u64>> {
