@@ -8,12 +8,13 @@ use rayon::prelude::*;
 pub fn solve(input: &str) -> Option<Box<u64>> {
   // hyperparams
   let max_threads = 4;
-  let max_moves = 200_000;
+  let max_moves = 100_000;
   let max_iterations = max_threads * 100;
 
   let tiles = parse(input);
 
-  (0..max_iterations).into_par_iter().find_map_any(|iteration| {
+  // (0..max_iterations).into_par_iter().find_map_any(|iteration| {
+  (0..max_iterations).into_iter().find_map(|iteration| {
     let thread_id = std::thread::current().id();
     println!("[{:?}] Iteration {}...", thread_id, iteration + 1);
     if let (Some(assignment), moves) = arrange(&tiles, max_moves) {
@@ -39,9 +40,6 @@ pub fn solve(input: &str) -> Option<Box<u64>> {
 
     return None;
   })
-
-  // for iteration in 0..max_iterations {
-  // }
 }
 
 pub fn solve2(input: &str) -> Option<Box<u64>> {
@@ -78,14 +76,14 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize) -> (Option<Assignment>,
     // select random conflicted variable
     let (coords, conflicted_coords) = conflicts.into_iter().choose(&mut rng).unwrap();
     let (row_id, col_id) = coords;
-    let (tile_id, curr_transform) = assignment[row_id][col_id].clone();
+    let (tile_id, curr_transform) = assignment[row_id][col_id];
 
     let mut improved = false;
     let local_conflicts_count = conflicted_coords.len();
     // try to apply all possible transforms != current transform to the current tile
     for transform in &transforms {
       if transform != &curr_transform {
-        assignment[row_id][col_id] = (tile_id, transform.clone());
+        assignment[row_id][col_id] = (tile_id, *transform);
 
         // if some of the improves the conflicts count, we can move on to a next tile
         let new_conflicts = get_conflicts(tiles, &assignment, coords);
@@ -96,13 +94,10 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize) -> (Option<Assignment>,
       }
     }
 
-    // if no improvement happen via transforms, try to swap with conflicted
+    // if no improvement happen via transforms, try to swap with some other cell
     if !improved {
-      for (swap_row_id, swap_col_id) in conflicted_coords {
-        let swap_tile = assignment[swap_row_id][swap_col_id].clone();
-
-        assignment[row_id][col_id] = swap_tile;
-        assignment[swap_row_id][swap_col_id] = (tile_id, curr_transform.clone());
+      for another_coords in conflicted_coords {
+        swap(&mut assignment, (row_id, col_id), another_coords);
 
         // same, break as soon as we improve
         let new_conflicts = get_conflicts(tiles, &assignment, coords);
@@ -111,8 +106,7 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize) -> (Option<Assignment>,
           break;
         } else {
           // we need to undo if no improvement was made
-          assignment[row_id][col_id] = (tile_id, curr_transform.clone());
-          assignment[swap_row_id][swap_col_id] = swap_tile;
+          swap(&mut assignment, (row_id, col_id), another_coords);
         }
       }
     }
@@ -124,16 +118,22 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize) -> (Option<Assignment>,
       let swap_row_id = rng.gen_range(0, size);
       let swap_col_id = rng.gen_range(0, size);
 
-      let swap_tile = assignment[swap_row_id][swap_col_id].clone();
-
-      assignment[row_id][col_id] = swap_tile;
-      assignment[swap_row_id][swap_col_id] = (tile_id, curr_transform.clone());
+      swap(&mut assignment, (row_id, col_id), (swap_row_id, swap_col_id));
     }
 
     conflicts = get_all_conflicts(tiles, &assignment);
   }
 
   (Some(assignment), moves)
+}
+
+fn swap(assignment: &mut Assignment, this: Coords, another: Coords) {
+  let (row_id, col_id) = this;
+  let (swap_row_id, swap_col_id) = another;
+
+  let (this_tile_id, this_transform) = assignment[row_id][col_id];
+  assignment[row_id][col_id] = assignment[swap_row_id][swap_col_id];
+  assignment[swap_row_id][swap_col_id] = (this_tile_id, this_transform);
 }
 
 fn size(tiles: &HashMap<u64, Tile>) -> usize {
