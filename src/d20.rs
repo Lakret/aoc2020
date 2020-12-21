@@ -8,8 +8,10 @@ use rayon::prelude::*;
 pub fn solve(input: &str) -> Option<Box<u64>> {
   // hyperparams
   let num_threads = 8;
-  let max_moves = 10_000;
-  let max_iterations = num_threads * 100;
+  let max_moves_low = 100;
+  let max_moves_high = 1_000_000;
+  let max_moves_step = 5;
+  let max_iterations = 50;
 
   let tiles = parse(input);
 
@@ -18,35 +20,51 @@ pub fn solve(input: &str) -> Option<Box<u64>> {
     .build_global()
     .unwrap_or(());
 
-  (0..max_iterations).into_par_iter().find_map_any(|iteration| {
-    // (0..max_iterations).into_iter().find_map(|iteration| {
-    let thread_id = std::thread::current().id();
-    let mut rng = thread_rng();
+  // (0..max_iterations).into_iter().find_map(|iteration| {
+  for iteration in 0..max_iterations {
+    // progressively increase max_moves at each new iteration
+    let max_moves = (max_moves_low * (max_moves_step as f64).powi(iteration as i32) as usize).min(max_moves_high);
 
-    println!("[{:?}] Iteration {}...", thread_id, iteration + 1);
-    if let (Some(assignment), moves) = arrange(&tiles, max_moves, &mut rng) {
-      let (first_row, last_row) = (assignment[0].clone(), assignment.last().unwrap());
-      let (top_left, top_right) = (first_row[0], first_row.last().unwrap());
-      let (bottom_left, bottom_right) = (last_row[0], last_row.last().unwrap());
-      let answer = top_left.0 * top_right.0 * bottom_left.0 * bottom_right.0;
+    let result = (0..num_threads).into_par_iter().find_map_any(|iteration| {
+      let thread_id = std::thread::current().id();
+      let mut rng = thread_rng();
 
       println!(
-        "[{:?}] Corners: {:?}.",
-        thread_id,
-        vec![&top_left, top_right, &bottom_left, bottom_right]
-      );
-      println!(
-        "[{:?}] Solved at iteration {}, in {} moves: {}.",
+        "[{:?}] Iteration {} with max moves {}.",
         thread_id,
         iteration + 1,
-        moves,
-        answer
+        max_moves
       );
-      return Some(Box::new(answer));
-    }
+      if let (Some(assignment), moves) = arrange(&tiles, max_moves, &mut rng) {
+        let (first_row, last_row) = (assignment[0].clone(), assignment.last().unwrap());
+        let (top_left, top_right) = (first_row[0], first_row.last().unwrap());
+        let (bottom_left, bottom_right) = (last_row[0], last_row.last().unwrap());
+        let answer = top_left.0 * top_right.0 * bottom_left.0 * bottom_right.0;
 
-    return None;
-  })
+        println!(
+          "[{:?}] Corners: {:?}.",
+          thread_id,
+          vec![&top_left, top_right, &bottom_left, bottom_right]
+        );
+        println!(
+          "[{:?}] Solved at iteration {}, in {} moves: {}.",
+          thread_id,
+          iteration + 1,
+          moves,
+          answer
+        );
+        return Some(Box::new(answer));
+      }
+
+      return None;
+    });
+
+    if result.is_some() {
+      return result;
+    }
+  }
+
+  None
 }
 
 pub fn solve2(input: &str) -> Option<Box<u64>> {
