@@ -5,29 +5,109 @@ use rand::rngs::ThreadRng;
 
 use rayon::prelude::*;
 
+/// To avoid moving vectors of strings around all the time.
+type TilesMap = HashMap<u64, Tile>;
+
+/// `[[(tile_id, Transform); row_size]; col_size]`
+type Assignment = Vec<Vec<(u64, Transform)>>;
+
+type Coords = (usize, usize);
+
 pub fn solve(input: &str) -> Option<Box<u64>> {
-  let tiles = parse(input);
+  let tiles = Tile::parse(input);
 
-  // hyperparams
-  let num_threads = 8;
-  let max_tabu = tiles.len();
-  // each thread will run `max_iterations`.
-  // 1st iteration will start with `max_moves_low`,
-  // and each next one will increase it by a factor of `max_moves_step`,
-  // but limiting it to `max_moves_high` at the max.
-  let max_iterations = 50;
-  let max_moves_step = 2;
-  let max_moves_low = 1000;
-  let max_moves_high = 2_000_000;
+  let match_counts = count_edge_match_counts(&tiles);
+  let corners = match_counts[..4]
+    .iter()
+    .copied()
+    .map(|(tile_id, _match_count)| tile_id)
+    .collect::<Vec<_>>();
 
+  let answer = corners.iter().product();
+  Some(Box::new(answer))
+}
+
+pub fn solve2(input: &str) -> Option<Box<u64>> {
+  let tiles = Tile::parse(input);
+
+  let match_counts = count_edge_match_counts(&tiles);
+  let corners = match_counts[..4]
+    .iter()
+    .copied()
+    .map(|(tile_id, _match_count)| tile_id)
+    .collect::<HashSet<_>>();
+
+  match min_conflicts(&tiles, 4, 50, 1_000, 2_000_000, 4, None, Some(corners)) {
+    Some(assignment) => {
+      dbg!(&assignment[0..size(&tiles)]);
+    }
+    None => (),
+  }
+
+  None
+}
+
+fn count_edge_match_counts(tiles: &TilesMap) -> Vec<(u64, usize)> {
+  let mut tile_id_to_edge_nums = HashMap::new();
+
+  for (&tile_id, tile) in tiles.iter() {
+    let edge_nums = tile.possible_edges_as_nums();
+    tile_id_to_edge_nums.insert(tile_id, edge_nums);
+  }
+
+  let mut tile_id_to_match_counts = tile_id_to_edge_nums
+    .iter()
+    .map(|(tile_id, edge_nums)| {
+      let mut matches_count = 0;
+
+      for (another_tile_id, another_edge_nums) in tile_id_to_edge_nums.iter() {
+        if another_tile_id != tile_id {
+          matches_count += another_edge_nums.intersection(edge_nums).count()
+        }
+      }
+
+      (*tile_id, matches_count)
+    })
+    .collect::<Vec<_>>();
+
+  tile_id_to_match_counts
+    .sort_by(|(_tile_id1, match_count1), (_tile_id2, match_count2)| match_count1.cmp(match_count2));
+
+  tile_id_to_match_counts
+}
+
+/// Performs min-conflicts algorithm to arrange `tiles`, and return the answer to part 1.
+///
+/// The following hyperparams are required:
+///
+///   - `num_threads` - num of threads to use
+///   - `max_iterations` - a maximum number of global iterations to run. Each thread will run `max_iterations`.
+///   - `max_moves_low`, `max_moves_high` - lower and upper limits on the number of moves to try in each iteration.
+///   - `max_moves_step` - a step by a factor of which each following iteration will increase the current `max_moves`.
+///   The first iteration starts with `max_moves_low`, and each next one allows
+///   `min(max_moves_low * 2 ^ i, max_moves_high)`.
+///   - `max_tabu` - a length of tabu vector, prohibiting repeating the last `max_tabu` moves
+///   to avoid getting stuck in a local minimum. If not provided, will use the length of `tiles`.
+///   - `corners` - an optional `HashSet` of tiles known to be corners. This speeds up things a lot!
+fn min_conflicts(
+  tiles: &TilesMap,
+  num_threads: usize,
+  max_iterations: i32,
+  max_moves_low: usize,
+  max_moves_high: usize,
+  max_moves_step: i32,
+  max_tabu: Option<usize>,
+  corners: Option<HashSet<u64>>,
+) -> Option<Assignment> {
   rayon::ThreadPoolBuilder::default()
     .num_threads(num_threads)
     .build_global()
     .unwrap_or(());
 
-  // (0..max_iterations).into_iter().find_map(|iteration| {
+  let max_tabu = max_tabu.unwrap_or(tiles.len());
+  let corners = corners.unwrap_or(HashSet::new());
+
   for iteration in 0..max_iterations {
-    // progressively increase max_moves at each new iteration
     let max_moves = (max_moves_low * (max_moves_step as f64).powi(iteration as i32) as usize).min(max_moves_high);
 
     let result = (0..num_threads).into_par_iter().find_map_any(|thread_id| {
@@ -39,7 +119,7 @@ pub fn solve(input: &str) -> Option<Box<u64>> {
         iteration + 1,
         max_moves
       );
-      if let (Some(assignment), moves) = arrange(&tiles, max_moves, max_tabu, &mut rng) {
+      if let (Some(assignment), moves) = arrange(&tiles, max_moves, max_tabu, &corners, &mut rng) {
         let (first_row, last_row) = (assignment[0].clone(), assignment.last().unwrap());
         let (top_left, top_right) = (first_row[0], first_row.last().unwrap());
         let (bottom_left, bottom_right) = (last_row[0], last_row.last().unwrap());
@@ -57,7 +137,7 @@ pub fn solve(input: &str) -> Option<Box<u64>> {
           moves,
           answer
         );
-        return Some(Box::new(answer));
+        return Some(assignment);
       }
 
       return None;
@@ -71,22 +151,11 @@ pub fn solve(input: &str) -> Option<Box<u64>> {
   None
 }
 
-pub fn solve2(input: &str) -> Option<Box<u64>> {
-  None
-}
-
-/// To avoid moving vectors of strings around all the time.
-type TilesMap = HashMap<u64, Tile>;
-
-/// `[[(tile_id, Transform); row_size]; col_size]`
-type Assignment = Vec<Vec<(u64, Transform)>>;
-
-type Coords = (usize, usize);
-
 fn arrange(
-  tiles: &HashMap<u64, Tile>,
+  tiles: &TilesMap,
   max_moves: usize,
   max_tabu: usize,
+  corners: &HashSet<u64>,
   rng: &mut ThreadRng,
 ) -> (Option<Assignment>, usize) {
   // cache this to avoid re-generating it all the time
@@ -100,7 +169,7 @@ fn arrange(
   let mut tabu: VecDeque<(Coords, (u64, Transform))> = VecDeque::new();
 
   // initial random assignment
-  let mut assignment = random_assignment(tiles, rng);
+  let mut assignment = random_assignment(tiles, corners, rng);
 
   // try to improve while there are conflicts / until max moves reached.
   let mut moves = 0;
@@ -156,8 +225,6 @@ fn arrange(
       for &another_coords in all_coords.iter() {
         let another_tile_id_and_transform = assignment[another_coords.0][another_coords.1];
         if another_coords != coords && !local_tabu.contains(&another_tile_id_and_transform) {
-          // TODO: pre-process by figuring out the tiles with min. number of matches for other tiles edges
-          // those are likely corners
           // TODO: shall we also count number of conflicts in `another_coords`
           // and only swap when both this and another cell's conflicts count improve?
           // TODO: global conflict counts to check improvement instead of local conflict counts?
@@ -205,6 +272,7 @@ fn arrange(
   (Some(assignment), moves)
 }
 
+/// Swaps `this` and `another` cells in `assignment`.
 fn swap(assignment: &mut Assignment, this: Coords, another: Coords) {
   let (row_id, col_id) = this;
   let (swap_row_id, swap_col_id) = another;
@@ -214,11 +282,11 @@ fn swap(assignment: &mut Assignment, this: Coords, another: Coords) {
   assignment[swap_row_id][swap_col_id] = (this_tile_id, this_transform);
 }
 
-fn size(tiles: &HashMap<u64, Tile>) -> usize {
+fn size(tiles: &TilesMap) -> usize {
   (tiles.values().len() as f64).sqrt() as usize
 }
 
-fn random_assignment(tiles: &HashMap<u64, Tile>, rng: &mut ThreadRng) -> Assignment {
+fn random_assignment(tiles: &TilesMap, corners: &HashSet<u64>, rng: &mut ThreadRng) -> Assignment {
   let non_default_transform = Transform {
     rotation: rng.gen_range(0, 3),
     flip_horizontal: rng.gen(),
@@ -228,7 +296,6 @@ fn random_assignment(tiles: &HashMap<u64, Tile>, rng: &mut ThreadRng) -> Assignm
   let mut tile_ids = tiles
     .keys()
     .copied()
-    // .map(|tile_id| (tile_id, Transform::default()))
     .map(|tile_id| (tile_id, non_default_transform))
     .collect::<Vec<_>>();
   tile_ids.shuffle(rng);
@@ -238,6 +305,25 @@ fn random_assignment(tiles: &HashMap<u64, Tile>, rng: &mut ThreadRng) -> Assignm
   for row_id in 0..size {
     let row = tile_ids[row_id * size..(row_id + 1) * size].to_vec();
     assignment.push(row);
+  }
+
+  // swap corner tiles to random corners
+  if !corners.is_empty() {
+    let mut corner_coords = vec![(0, 0), (0, size - 1), (size - 1, 0), (size - 1, 1)];
+    corner_coords.shuffle(rng);
+
+    let mut corners = corners.clone();
+    for row_id in 0..size {
+      for col_id in 0..size {
+        let tile_id = assignment[row_id][col_id].0;
+        if corners.contains(&tile_id) {
+          if let Some(corner_coords) = corner_coords.pop() {
+            corners.remove(&tile_id);
+            swap(&mut assignment, (row_id, col_id), corner_coords);
+          }
+        }
+      }
+    }
   }
 
   assignment
@@ -309,6 +395,88 @@ struct Transform {
   flip_horizontal: bool,
 }
 
+impl Tile {
+  fn possible_edges_as_nums(&self) -> HashSet<u64> {
+    let mut possible = HashSet::new();
+
+    for edge in self.edges.iter() {
+      let (normal, reversed) = Tile::edge_as_num(edge);
+      possible.insert(normal);
+      possible.insert(reversed);
+    }
+
+    possible
+  }
+
+  fn edge_as_num(edge: &str) -> (u64, u64) {
+    (
+      u64::from_str_radix(&edge.replace('.', "0").replace('#', "1"), 2).unwrap(),
+      u64::from_str_radix(
+        &edge
+          .chars()
+          .rev()
+          .collect::<String>()
+          .replace('.', "0")
+          .replace('#', "1"),
+        2,
+      )
+      .unwrap(),
+    )
+  }
+
+  fn parse(input: &str) -> HashMap<u64, Tile> {
+    let mut tiles = HashMap::new();
+
+    for raw_tile in input.trim_end().split("\n\n") {
+      let lines = raw_tile.split('\n').collect::<Vec<_>>();
+
+      let id = lines[0]
+        .strip_prefix("Tile ")
+        .and_then(|header| header.strip_suffix(':'))
+        .and_then(|id| id.parse::<u64>().ok())
+        .unwrap();
+
+      let raw = lines[1..].into_iter().map(|line| line.to_string()).collect::<Vec<_>>();
+
+      let top = raw[0].clone();
+      let right = raw.iter().map(|row| row.chars().last().unwrap().clone()).collect();
+      let bottom = raw.last().unwrap().clone();
+      let left = raw.iter().map(|row| row.chars().take(1).next().unwrap()).collect();
+      let edges = vec![top, right, bottom, left];
+
+      let tile = Tile { raw, edges };
+      tiles.insert(id, tile);
+    }
+
+    tiles
+  }
+
+  fn top_edge(&self, transform: &Transform) -> String {
+    self.edge_with_id_and_pos(0, transform)
+  }
+
+  fn right_edge(&self, transform: &Transform) -> String {
+    self.edge_with_id_and_pos(1, transform)
+  }
+
+  fn bottom_edge(&self, transform: &Transform) -> String {
+    self.edge_with_id_and_pos(2, transform)
+  }
+
+  fn left_edge(&self, transform: &Transform) -> String {
+    self.edge_with_id_and_pos(3, transform)
+  }
+
+  fn edge_with_id_and_pos(&self, edge_id: usize, transform: &Transform) -> String {
+    let (edge_id, reverse) = transform.edge_id_and_flip_map()[edge_id];
+    if reverse {
+      self.edges[edge_id].chars().rev().collect()
+    } else {
+      self.edges[edge_id].clone()
+    }
+  }
+}
+
 impl Transform {
   /// Returns a vector of all possible transforms.
   fn all_transforms() -> Vec<Transform> {
@@ -370,60 +538,6 @@ impl Transform {
   }
 }
 
-impl Tile {
-  fn top_edge(&self, transform: &Transform) -> String {
-    self.edge_with_id_and_pos(0, transform)
-  }
-
-  fn right_edge(&self, transform: &Transform) -> String {
-    self.edge_with_id_and_pos(1, transform)
-  }
-
-  fn bottom_edge(&self, transform: &Transform) -> String {
-    self.edge_with_id_and_pos(2, transform)
-  }
-
-  fn left_edge(&self, transform: &Transform) -> String {
-    self.edge_with_id_and_pos(3, transform)
-  }
-
-  fn edge_with_id_and_pos(&self, edge_id: usize, transform: &Transform) -> String {
-    let (edge_id, reverse) = transform.edge_id_and_flip_map()[edge_id];
-    if reverse {
-      self.edges[edge_id].chars().rev().collect()
-    } else {
-      self.edges[edge_id].clone()
-    }
-  }
-}
-
-fn parse(input: &str) -> HashMap<u64, Tile> {
-  let mut tiles = HashMap::new();
-
-  for raw_tile in input.trim_end().split("\n\n") {
-    let lines = raw_tile.split('\n').collect::<Vec<_>>();
-
-    let id = lines[0]
-      .strip_prefix("Tile ")
-      .and_then(|header| header.strip_suffix(':'))
-      .and_then(|id| id.parse::<u64>().ok())
-      .unwrap();
-
-    let raw = lines[1..].into_iter().map(|line| line.to_string()).collect::<Vec<_>>();
-
-    let top = raw[0].clone();
-    let right = raw.iter().map(|row| row.chars().last().unwrap().clone()).collect();
-    let bottom = raw.last().unwrap().clone();
-    let left = raw.iter().map(|row| row.chars().take(1).next().unwrap()).collect();
-    let edges = vec![top, right, bottom, left];
-
-    let tile = Tile { raw, edges };
-    tiles.insert(id, tile);
-  }
-
-  tiles
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -432,7 +546,7 @@ mod tests {
   #[test]
   fn parser_and_edge_extractors_work() {
     let input = fs::read_to_string("inputs/sample20").unwrap();
-    let tiles = parse(&input);
+    let tiles = Tile::parse(&input);
 
     let tile_2971 = tiles.get(&2971).unwrap();
     let top_edge = "..#.#....#";
