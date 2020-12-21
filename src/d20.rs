@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 use rand::seq::{SliceRandom, IteratorRandom};
 use rand::{Rng, thread_rng};
 use rand::rngs::ThreadRng;
@@ -93,6 +93,9 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize, rng: &mut ThreadRng) ->
   // initial random assignment
   let mut assignment = random_assignment(tiles, rng);
 
+  let max_tabu = size / 3;
+  let mut tabu: VecDeque<(Coords, (u64, Transform))> = VecDeque::new();
+
   // try to improve while there are conflicts / until max moves reached.
   let mut moves = 0;
   let mut conflicts = get_all_conflicts(tiles, &assignment);
@@ -110,14 +113,30 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize, rng: &mut ThreadRng) ->
 
     let mut improved = false;
     let local_conflicts_count = conflicted_coords.len();
+
+    let local_tabu = tabu
+      .iter()
+      .copied()
+      .filter_map(|((tabu_row_id, tabu_col_id), tile_id_and_transform)| {
+        if tabu_row_id == row_id && tabu_col_id == tabu_col_id {
+          Some(tile_id_and_transform)
+        } else {
+          None
+        }
+      })
+      .collect::<HashSet<_>>();
+
     // try to apply all possible transforms != current transform to the current tile
-    for transform in &transforms {
-      if transform != &curr_transform {
-        assignment[row_id][col_id] = (tile_id, *transform);
+    for &transform in &transforms {
+      if transform != curr_transform && !local_tabu.contains(&(tile_id, transform)) {
+        assignment[row_id][col_id] = (tile_id, transform);
 
         // if some of the improves the conflicts count, we can move on to a next tile
         let new_conflicts = get_conflicts(tiles, &assignment, coords);
         if new_conflicts.len() < local_conflicts_count {
+          // TODO: extract tabu add logic
+          tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
+
           improved = true;
           break;
         }
@@ -130,21 +149,24 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize, rng: &mut ThreadRng) ->
       all_coords.shuffle(rng);
 
       for &another_coords in all_coords.iter() {
-        if another_coords != coords {
+        let another_tile_id_and_transform = assignment[another_coords.0][another_coords.1];
+        if another_coords != coords && !local_tabu.contains(&another_tile_id_and_transform) {
           // TODO: pre-process by figuring out the tiles with min. number of matches for other tiles edges
           // those are likely corners
-
-          // TODO: should we select the most optimal transform / position, instead of breaking on the first
-          // that improves things slightly?
           // TODO: shall we also count number of conflicts in `another_coords`
           // and only swap when both this and another cell's conflicts count improve?
-          // TODO: tabu certain moves?
           // TODO: global conflict counts to check improvement instead of local conflict counts?
+          // TODO: should we select the most optimal transform / position, instead of breaking on the first
+          // that improves things slightly?
+
           swap(&mut assignment, (row_id, col_id), another_coords);
 
           // same, break as soon as we improve
           let new_conflicts = get_conflicts(tiles, &assignment, coords);
           if new_conflicts.len() < local_conflicts_count {
+            // TODO: extract tabu add logic
+            tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
+
             improved = true;
             break;
           } else {
@@ -163,6 +185,13 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize, rng: &mut ThreadRng) ->
       let swap_col_id = rng.gen_range(0, size);
 
       swap(&mut assignment, (row_id, col_id), (swap_row_id, swap_col_id));
+
+      // TODO: extract tabu add logic
+      tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
+    }
+
+    if tabu.len() > max_tabu {
+      tabu.truncate(max_tabu);
     }
 
     conflicts = get_all_conflicts(tiles, &assignment);
@@ -255,27 +284,6 @@ fn get_conflicts(tiles: &TilesMap, assignment: &Assignment, coords: Coords) -> V
     }
   }
 
-  // FIXME: doesn't seem that we need those
-  // // check for conflict with bottom tile, if it exists
-  // if row_id < assignment.len() - 1 {
-  //   let (bottom_tile_id, bottom_tile_transform) = &assignment[row_id + 1][col_id];
-  //   let bottom_tile = tiles.get(bottom_tile_id).unwrap();
-
-  //   if curr_tile.bottom_edge(curr_tile_transform) != bottom_tile.top_edge(bottom_tile_transform) {
-  //     conflicts.push((row_id + 1, col_id));
-  //   }
-  // }
-
-  // // check for conflict with right tile, if it exists
-  // if col_id < assignment.len() - 1 {
-  //   let (right_tile_id, right_tile_transform) = &assignment[row_id][col_id + 1];
-  //   let right_tile = tiles.get(right_tile_id).unwrap();
-
-  //   if curr_tile.right_edge(curr_tile_transform) != right_tile.left_edge(right_tile_transform) {
-  //     conflicts.push((row_id, col_id + 1));
-  //   }
-  // }
-
   conflicts
 }
 
@@ -289,7 +297,7 @@ struct Tile {
 
 /// Rotations are counterclockwise, i.e.:
 /// 0 - no rotation, 1 - 90 left, 2 - 180, 3 - 270 left.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 struct Transform {
   rotation: usize,
   flip_vertical: bool,
