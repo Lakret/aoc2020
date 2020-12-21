@@ -6,18 +6,19 @@ use rand::rngs::ThreadRng;
 use rayon::prelude::*;
 
 pub fn solve(input: &str) -> Option<Box<u64>> {
+  let tiles = parse(input);
+
   // hyperparams
   let num_threads = 8;
+  let max_tabu = tiles.len();
   // each thread will run `max_iterations`.
   // 1st iteration will start with `max_moves_low`,
   // and each next one will increase it by a factor of `max_moves_step`,
   // but limiting it to `max_moves_high` at the max.
   let max_iterations = 50;
   let max_moves_step = 2;
-  let max_moves_low = 500;
+  let max_moves_low = 1000;
   let max_moves_high = 2_000_000;
-
-  let tiles = parse(input);
 
   rayon::ThreadPoolBuilder::default()
     .num_threads(num_threads)
@@ -38,7 +39,7 @@ pub fn solve(input: &str) -> Option<Box<u64>> {
         iteration + 1,
         max_moves
       );
-      if let (Some(assignment), moves) = arrange(&tiles, max_moves, &mut rng) {
+      if let (Some(assignment), moves) = arrange(&tiles, max_moves, max_tabu, &mut rng) {
         let (first_row, last_row) = (assignment[0].clone(), assignment.last().unwrap());
         let (top_left, top_right) = (first_row[0], first_row.last().unwrap());
         let (bottom_left, bottom_right) = (last_row[0], last_row.last().unwrap());
@@ -82,7 +83,12 @@ type Assignment = Vec<Vec<(u64, Transform)>>;
 
 type Coords = (usize, usize);
 
-fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize, rng: &mut ThreadRng) -> (Option<Assignment>, usize) {
+fn arrange(
+  tiles: &HashMap<u64, Tile>,
+  max_moves: usize,
+  max_tabu: usize,
+  rng: &mut ThreadRng,
+) -> (Option<Assignment>, usize) {
   // cache this to avoid re-generating it all the time
   let transforms = Transform::all_transforms();
   let size = size(tiles);
@@ -90,11 +96,11 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize, rng: &mut ThreadRng) ->
     .flat_map(|row_id| (0..size).map(|col_id| (row_id, col_id)).collect::<Vec<_>>())
     .collect::<Vec<_>>();
 
+  // prohibits reuse of `max_tabu` last moves
+  let mut tabu: VecDeque<(Coords, (u64, Transform))> = VecDeque::new();
+
   // initial random assignment
   let mut assignment = random_assignment(tiles, rng);
-
-  let max_tabu = size / 3;
-  let mut tabu: VecDeque<(Coords, (u64, Transform))> = VecDeque::new();
 
   // try to improve while there are conflicts / until max moves reached.
   let mut moves = 0;
@@ -134,7 +140,6 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize, rng: &mut ThreadRng) ->
         // if some of the improves the conflicts count, we can move on to a next tile
         let new_conflicts = get_conflicts(tiles, &assignment, coords);
         if new_conflicts.len() < local_conflicts_count {
-          // TODO: extract tabu add logic
           tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
 
           improved = true;
@@ -158,13 +163,14 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize, rng: &mut ThreadRng) ->
           // TODO: global conflict counts to check improvement instead of local conflict counts?
           // TODO: should we select the most optimal transform / position, instead of breaking on the first
           // that improves things slightly?
+          let another_conflicts = get_conflicts(tiles, &assignment, another_coords);
 
           swap(&mut assignment, (row_id, col_id), another_coords);
 
           // same, break as soon as we improve
           let new_conflicts = get_conflicts(tiles, &assignment, coords);
-          if new_conflicts.len() < local_conflicts_count {
-            // TODO: extract tabu add logic
+          let new_another_conflicts = get_conflicts(tiles, &assignment, another_coords);
+          if new_conflicts.len() < local_conflicts_count && new_another_conflicts <= another_conflicts {
             tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
 
             improved = true;
@@ -186,7 +192,6 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize, rng: &mut ThreadRng) ->
 
       swap(&mut assignment, (row_id, col_id), (swap_row_id, swap_col_id));
 
-      // TODO: extract tabu add logic
       tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
     }
 
