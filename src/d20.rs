@@ -8,10 +8,14 @@ use rayon::prelude::*;
 pub fn solve(input: &str) -> Option<Box<u64>> {
   // hyperparams
   let num_threads = 8;
-  let max_moves_low = 100;
-  let max_moves_high = 1_000_000;
-  let max_moves_step = 5;
+  // each thread will run `max_iterations`.
+  // 1st iteration will start with `max_moves_low`,
+  // and each next one will increase it by a factor of `max_moves_step`,
+  // but limiting it to `max_moves_high` at the max.
   let max_iterations = 50;
+  let max_moves_step = 2;
+  let max_moves_low = 500;
+  let max_moves_high = 2_000_000;
 
   let tiles = parse(input);
 
@@ -25,12 +29,11 @@ pub fn solve(input: &str) -> Option<Box<u64>> {
     // progressively increase max_moves at each new iteration
     let max_moves = (max_moves_low * (max_moves_step as f64).powi(iteration as i32) as usize).min(max_moves_high);
 
-    let result = (0..num_threads).into_par_iter().find_map_any(|iteration| {
-      let thread_id = std::thread::current().id();
+    let result = (0..num_threads).into_par_iter().find_map_any(|thread_id| {
       let mut rng = thread_rng();
 
       println!(
-        "[{:?}] Iteration {} with max moves {}.",
+        "[{}] Iteration {} with max moves {}.",
         thread_id,
         iteration + 1,
         max_moves
@@ -128,9 +131,15 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize, rng: &mut ThreadRng) ->
 
       for &another_coords in all_coords.iter() {
         if another_coords != coords {
+          // TODO: pre-process by figuring out the tiles with min. number of matches for other tiles edges
+          // those are likely corners
+
+          // TODO: should we select the most optimal transform / position, instead of breaking on the first
+          // that improves things slightly?
           // TODO: shall we also count number of conflicts in `another_coords`
           // and only swap when both this and another cell's conflicts count improve?
           // TODO: tabu certain moves?
+          // TODO: global conflict counts to check improvement instead of local conflict counts?
           swap(&mut assignment, (row_id, col_id), another_coords);
 
           // same, break as soon as we improve
@@ -245,6 +254,27 @@ fn get_conflicts(tiles: &TilesMap, assignment: &Assignment, coords: Coords) -> V
       conflicts.push((row_id, col_id - 1));
     }
   }
+
+  // FIXME: doesn't seem that we need those
+  // // check for conflict with bottom tile, if it exists
+  // if row_id < assignment.len() - 1 {
+  //   let (bottom_tile_id, bottom_tile_transform) = &assignment[row_id + 1][col_id];
+  //   let bottom_tile = tiles.get(bottom_tile_id).unwrap();
+
+  //   if curr_tile.bottom_edge(curr_tile_transform) != bottom_tile.top_edge(bottom_tile_transform) {
+  //     conflicts.push((row_id + 1, col_id));
+  //   }
+  // }
+
+  // // check for conflict with right tile, if it exists
+  // if col_id < assignment.len() - 1 {
+  //   let (right_tile_id, right_tile_transform) = &assignment[row_id][col_id + 1];
+  //   let right_tile = tiles.get(right_tile_id).unwrap();
+
+  //   if curr_tile.right_edge(curr_tile_transform) != right_tile.left_edge(right_tile_transform) {
+  //     conflicts.push((row_id, col_id + 1));
+  //   }
+  // }
 
   conflicts
 }
