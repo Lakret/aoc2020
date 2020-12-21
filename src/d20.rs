@@ -8,7 +8,7 @@ use rayon::prelude::*;
 pub fn solve(input: &str) -> Option<Box<u64>> {
   // hyperparams
   let max_threads = 4;
-  let max_moves = 100_000;
+  let max_moves = 200_000;
   let max_iterations = max_threads * 100;
 
   let tiles = parse(input);
@@ -58,6 +58,9 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize) -> (Option<Assignment>,
   // cache this to avoid re-generating it all the time
   let transforms = Transform::all_transforms();
   let size = size(tiles);
+  let mut all_coords = (0..size)
+    .flat_map(|row_id| (0..size).map(|col_id| (row_id, col_id)).collect::<Vec<_>>())
+    .collect::<Vec<_>>();
 
   // initial random assignment
   let mut rng = thread_rng();
@@ -96,7 +99,10 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize) -> (Option<Assignment>,
 
     // if no improvement happen via transforms, try to swap with some other cell
     if !improved {
-      for another_coords in conflicted_coords {
+      // add some tasty randomness to avoid pathological cases
+      all_coords.shuffle(&mut rng);
+
+      for &another_coords in all_coords.iter() {
         swap(&mut assignment, (row_id, col_id), another_coords);
 
         // same, break as soon as we improve
