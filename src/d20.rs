@@ -7,17 +7,24 @@ use rayon::prelude::*;
 
 pub fn solve(input: &str) -> Option<Box<u64>> {
   // hyperparams
-  let max_threads = 4;
-  let max_moves = 200_000;
-  let max_iterations = max_threads * 100;
+  let num_threads = 8;
+  let max_moves = 10_000;
+  let max_iterations = num_threads * 100;
 
   let tiles = parse(input);
 
-  // (0..max_iterations).into_par_iter().find_map_any(|iteration| {
-  (0..max_iterations).into_iter().find_map(|iteration| {
+  rayon::ThreadPoolBuilder::default()
+    .num_threads(num_threads)
+    .build_global()
+    .unwrap_or(());
+
+  (0..max_iterations).into_par_iter().find_map_any(|iteration| {
+    // (0..max_iterations).into_iter().find_map(|iteration| {
     let thread_id = std::thread::current().id();
+    let mut rng = thread_rng();
+
     println!("[{:?}] Iteration {}...", thread_id, iteration + 1);
-    if let (Some(assignment), moves) = arrange(&tiles, max_moves) {
+    if let (Some(assignment), moves) = arrange(&tiles, max_moves, &mut rng) {
       let (first_row, last_row) = (assignment[0].clone(), assignment.last().unwrap());
       let (top_left, top_right) = (first_row[0], first_row.last().unwrap());
       let (bottom_left, bottom_right) = (last_row[0], last_row.last().unwrap());
@@ -54,7 +61,7 @@ type Assignment = Vec<Vec<(u64, Transform)>>;
 
 type Coords = (usize, usize);
 
-fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize) -> (Option<Assignment>, usize) {
+fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize, rng: &mut ThreadRng) -> (Option<Assignment>, usize) {
   // cache this to avoid re-generating it all the time
   let transforms = Transform::all_transforms();
   let size = size(tiles);
@@ -63,8 +70,7 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize) -> (Option<Assignment>,
     .collect::<Vec<_>>();
 
   // initial random assignment
-  let mut rng = thread_rng();
-  let mut assignment = random_assignment(tiles, &mut rng);
+  let mut assignment = random_assignment(tiles, rng);
 
   // try to improve while there are conflicts / until max moves reached.
   let mut moves = 0;
@@ -77,7 +83,7 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize) -> (Option<Assignment>,
     }
 
     // select random conflicted variable
-    let (coords, conflicted_coords) = conflicts.into_iter().choose(&mut rng).unwrap();
+    let (coords, conflicted_coords) = conflicts.into_iter().choose(rng).unwrap();
     let (row_id, col_id) = coords;
     let (tile_id, curr_transform) = assignment[row_id][col_id];
 
@@ -100,19 +106,24 @@ fn arrange(tiles: &HashMap<u64, Tile>, max_moves: usize) -> (Option<Assignment>,
     // if no improvement happen via transforms, try to swap with some other cell
     if !improved {
       // add some tasty randomness to avoid pathological cases
-      all_coords.shuffle(&mut rng);
+      all_coords.shuffle(rng);
 
       for &another_coords in all_coords.iter() {
-        swap(&mut assignment, (row_id, col_id), another_coords);
-
-        // same, break as soon as we improve
-        let new_conflicts = get_conflicts(tiles, &assignment, coords);
-        if new_conflicts.len() < local_conflicts_count {
-          improved = true;
-          break;
-        } else {
-          // we need to undo if no improvement was made
+        if another_coords != coords {
+          // TODO: shall we also count number of conflicts in `another_coords`
+          // and only swap when both this and another cell's conflicts count improve?
+          // TODO: tabu certain moves?
           swap(&mut assignment, (row_id, col_id), another_coords);
+
+          // same, break as soon as we improve
+          let new_conflicts = get_conflicts(tiles, &assignment, coords);
+          if new_conflicts.len() < local_conflicts_count {
+            improved = true;
+            break;
+          } else {
+            // we need to undo if no improvement was made
+            swap(&mut assignment, (row_id, col_id), another_coords);
+          }
         }
       }
     }
@@ -147,10 +158,17 @@ fn size(tiles: &HashMap<u64, Tile>) -> usize {
 }
 
 fn random_assignment(tiles: &HashMap<u64, Tile>, rng: &mut ThreadRng) -> Assignment {
+  let non_default_transform = Transform {
+    rotation: rng.gen_range(0, 3),
+    flip_horizontal: rng.gen(),
+    flip_vertical: rng.gen(),
+  };
+
   let mut tile_ids = tiles
     .keys()
     .copied()
-    .map(|tile_id| (tile_id, Transform::default()))
+    // .map(|tile_id| (tile_id, Transform::default()))
+    .map(|tile_id| (tile_id, non_default_transform))
     .collect::<Vec<_>>();
   tile_ids.shuffle(rng);
 
