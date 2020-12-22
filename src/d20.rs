@@ -17,16 +17,16 @@ type Coords = (usize, usize);
 // - start with any of the corners
 // - moving from left to right, top to bottom, try to find a tile that may match (using edge numbers)
 // - if there's one, use it; to handle multiple branches & reverts, add backtracking.
-fn backtrack(tiles: &TilesMap) -> Assignment {
-  let corners = get_corners(&tiles);
-  todo!()
-}
+// fn backtrack(tiles: &TilesMap) -> Assignment {
+//   let corners = get_corners(&tiles);
+//   todo!()
+// }
 
-type BacktrackAssignment = HashMap<Coords, (u64, Transform)>;
+// type BacktrackAssignment = HashMap<Coords, (u64, Transform)>;
 
-fn backtrack_inner(tiles: &TilesMap, assignment: BacktrackAssignment, next_cell: Coords) -> BacktrackAssignment {
-  todo!()
-}
+// fn backtrack_inner(tiles: &TilesMap, assignment: BacktrackAssignment, next_cell: Coords) -> BacktrackAssignment {
+//   todo!()
+// }
 
 pub fn solve(input: &str) -> Option<Box<u64>> {
   let tiles = Tile::parse(input);
