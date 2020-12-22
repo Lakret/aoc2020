@@ -37,8 +37,7 @@ pub fn solve2(input: &str) -> Option<Box<u64>> {
     .map(|(tile_id, _match_count)| tile_id)
     .collect::<HashSet<_>>();
 
-  // FIXME: it seems that we have the same tile returned for each cell on sample input!
-  match min_conflicts(&tiles, 8, 50, 1_000, 2_000_000, 4, Some(0), Some(corners)) {
+  match min_conflicts(&tiles, 4, 50, 1_000, 2_000_000, 4, Some(0), Some(corners)) {
     Some(assignment) => {
       dbg!(&assignment[0..size(&tiles)]);
     }
@@ -165,14 +164,18 @@ fn arrange(
   let all_coords = (0..size)
     .flat_map(|row_id| (0..size).map(|col_id| (row_id, col_id)).collect::<Vec<_>>())
     .collect::<Vec<_>>();
+  // TODO: kill with fire
+  // let corner_coords = [(0, 0), (0, size - 1), (size - 1, 0), (size - 1, size - 1)]
+  //   .iter()
+  //   .copied()
+  //   .collect::<HashSet<_>>();
+  // let corner_coords_vec = corner_coords.iter().copied().collect::<Vec<_>>();
 
   // prohibits reuse of `max_tabu` last moves
   let mut tabu: VecDeque<(Coords, (u64, Transform))> = VecDeque::new();
 
   // initial random assignment
   let mut assignment = random_assignment(tiles, corners, rng);
-
-  // println!("start assignment: {:?}", &assignment);
 
   // try to improve while there are conflicts / until max moves reached.
   let mut moves = 0;
@@ -188,13 +191,7 @@ fn arrange(
     let (coords, conflicted_coords) = conflicts.into_iter().choose(rng).unwrap();
     let (row_id, col_id) = coords;
     let (tile_id, curr_transform) = assignment[row_id][col_id];
-
     let local_conflicts_count = conflicted_coords.len();
-
-    // dbg!(coords);
-    // dbg!((tile_id, curr_transform));
-    // dbg!(conflicted_coords);
-    // dbg!(local_conflicts_count);
 
     let local_tabu = tabu
       .iter()
@@ -210,7 +207,6 @@ fn arrange(
 
     let mut possible_moves = vec![];
 
-    // println!("before transform: {:?}", &assignment);
     // try to apply all possible transforms != current transform to the current tile
     for &transform in &transforms {
       if transform != curr_transform && !local_tabu.contains(&(tile_id, transform)) {
@@ -227,8 +223,15 @@ fn arrange(
     // revert to the original transform
     assignment[row_id][col_id] = (tile_id, curr_transform);
 
-    // println!("after transform: {:?}", &assignment);
+    // try to swap with all other tiles
 
+    // TODO: this doesn't seem to work
+    // corners can only be swapped with corners, if `corners` were provided.
+    // let coords_to_try = if corner_coords.contains(&coords) && !corners.is_empty() {
+    //   &corner_coords_vec
+    // } else {
+    //   &all_coords
+    // };
     for &another_coords in all_coords.iter() {
       let another_tile_id_and_transform = assignment[another_coords.0][another_coords.1];
 
@@ -242,7 +245,6 @@ fn arrange(
         let new_another_conflicts = get_conflicts(tiles, &assignment, another_coords).len();
         if new_conflicts.len() < local_conflicts_count && new_another_conflicts <= another_conflicts {
           // TODO: should we normalize the cost here by `/2`, since we're counting both tiles?
-          // TODO: should we try global transforms again?
           possible_moves.push((
             (another_coords, Transform::default()),
             new_conflicts.len() + new_another_conflicts,
@@ -254,18 +256,9 @@ fn arrange(
       }
     }
 
-    // println!("after swaps: {:?}", &assignment);
-    // println!("possible_moves: {:?}", &possible_moves);
-
     // find the best move
     possible_moves.sort_by_key(|(_another_coords, conflicts_count)| *conflicts_count);
     if let Some(((another_coords, transform), _best_move_conflicts_count)) = possible_moves.pop() {
-      // println!(
-      //   "executing move: {:?} for {:?}.",
-      //   &(another_coords, transform),
-      //   &(row_id, col_id, curr_transform)
-      // );
-
       if another_coords != coords {
         swap(&mut assignment, (row_id, col_id), another_coords);
       } else {
@@ -277,8 +270,6 @@ fn arrange(
       // if still no improvements, do a random swap to break ties.
       let swap_row_id = rng.gen_range(0, size);
       let swap_col_id = rng.gen_range(0, size);
-
-      // println!("random swap with {:?}.", &(swap_row_id, swap_col_id));
 
       swap(&mut assignment, (row_id, col_id), (swap_row_id, swap_col_id));
       tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
@@ -296,30 +287,12 @@ fn arrange(
 
 /// Swaps `this` and `another` cells in `assignment`.
 fn swap(assignment: &mut Assignment, this: Coords, another: Coords) {
-  // println!("Swapping {:?} with {:?} another:", this, another);
   let (row_id, col_id) = this;
   let (swap_row_id, swap_col_id) = another;
 
   let (this_tile_id, this_transform) = assignment[row_id][col_id];
-  // println!(
-  //   "\tBefore swap:\n\t\tassignment[row_id][col_id] = {:?}",
-  //   assignment[row_id][col_id]
-  // );
-  // println!(
-  //   "\t\tassignment[swap_row_id][swap_col_id] = {:?}",
-  //   assignment[swap_row_id][swap_col_id]
-  // );
   assignment[row_id][col_id] = assignment[swap_row_id][swap_col_id];
   assignment[swap_row_id][swap_col_id] = (this_tile_id, this_transform);
-
-  // println!(
-  //   "After swap:\n\t\tassignment[row_id][col_id] = {:?}",
-  //   assignment[row_id][col_id]
-  // );
-  // println!(
-  //   "\t\tassignment[swap_row_id][swap_col_id] = {:?}",
-  //   assignment[swap_row_id][swap_col_id]
-  // );
 }
 
 fn size(tiles: &TilesMap) -> usize {
@@ -327,7 +300,7 @@ fn size(tiles: &TilesMap) -> usize {
 }
 
 fn random_assignment(tiles: &TilesMap, corners: &HashSet<u64>, rng: &mut ThreadRng) -> Assignment {
-  let non_default_transform = Transform {
+  let random_transform = Transform {
     rotation: rng.gen_range(0, 3),
     flip_horizontal: rng.gen(),
     flip_vertical: rng.gen(),
@@ -336,7 +309,7 @@ fn random_assignment(tiles: &TilesMap, corners: &HashSet<u64>, rng: &mut ThreadR
   let mut tile_ids = tiles
     .keys()
     .copied()
-    .map(|tile_id| (tile_id, non_default_transform))
+    .map(|tile_id| (tile_id, random_transform))
     .collect::<Vec<_>>();
   tile_ids.shuffle(rng);
 
