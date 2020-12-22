@@ -13,15 +13,25 @@ type Assignment = Vec<Vec<(u64, Transform)>>;
 
 type Coords = (usize, usize);
 
+// TODO: we probably should just try backtracking:
+// - start with any of the corners
+// - moving from left to right, top to bottom, try to find a tile that may match (using edge numbers)
+// - if there's one, use it; to handle multiple branches & reverts, add backtracking.
+fn backtrack(tiles: &TilesMap) -> Assignment {
+  let corners = get_corners(&tiles);
+  todo!()
+}
+
+type BacktrackAssignment = HashMap<Coords, (u64, Transform)>;
+
+fn backtrack_inner(tiles: &TilesMap, assignment: BacktrackAssignment, next_cell: Coords) -> BacktrackAssignment {
+  todo!()
+}
+
 pub fn solve(input: &str) -> Option<Box<u64>> {
   let tiles = Tile::parse(input);
 
-  let match_counts = count_edge_match_counts(&tiles);
-  let corners = match_counts[..4]
-    .iter()
-    .copied()
-    .map(|(tile_id, _match_count)| tile_id)
-    .collect::<Vec<_>>();
+  let corners = get_corners(&tiles);
 
   let answer = corners.iter().product();
   Some(Box::new(answer))
@@ -45,6 +55,15 @@ pub fn solve2(input: &str) -> Option<Box<u64>> {
   }
 
   None
+}
+
+fn get_corners(tiles: &TilesMap) -> Vec<u64> {
+  let match_counts = count_edge_match_counts(&tiles);
+  match_counts
+    .into_iter()
+    .take(4)
+    .map(|(tile_id, _match_count)| tile_id)
+    .collect()
 }
 
 fn count_edge_match_counts(tiles: &TilesMap) -> Vec<(u64, usize)> {
