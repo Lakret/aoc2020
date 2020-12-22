@@ -13,24 +13,136 @@ type Assignment = Vec<Vec<(u64, Transform)>>;
 
 type Coords = (usize, usize);
 
-// TODO: we probably should just try backtracking:
-// - start with any of the corners
-// - moving from left to right, top to bottom, try to find a tile that may match (using edge numbers)
-// - if there's one, use it; to handle multiple branches & reverts, add backtracking.
-// fn backtrack(tiles: &TilesMap) -> Assignment {
-//   let corners = get_corners(&tiles);
-//   todo!()
-// }
+type BacktrackAssignment = HashMap<Coords, (u64, Transform)>;
 
-// type BacktrackAssignment = HashMap<Coords, (u64, Transform)>;
+fn backtrack(tiles: &TilesMap) -> Option<BacktrackAssignment> {
+  let corners = get_corners(tiles);
+  let size = size(tiles);
 
-// fn backtrack_inner(tiles: &TilesMap, assignment: BacktrackAssignment, next_cell: Coords) -> BacktrackAssignment {
-//   todo!()
-// }
+  let mut init_assignment = HashMap::new();
+  let first_tile_id = corners[0];
+  // TODO: shall we turn it so that the edges without matches are on top and left?
+  let first_tile_transform = Transform::default();
+  let first_tile = (first_tile_id, first_tile_transform);
+  let first_coords = (0, 0);
+  init_assignment.insert(first_coords, first_tile);
+
+  let mut unassigned_cells = vec![];
+  for row_idx in 0..size {
+    for col_idx in 0..size {
+      if !(row_idx == 0 && col_idx == 0) {
+        unassigned_cells.push((row_idx, col_idx));
+      }
+    }
+  }
+
+  // TODO: see if that's needed
+  // let mut edge_nums_to_unassigned_tile_ids = HashMap::new();
+  // for tile_id in tiles.keys().copied() {
+  //   if tile_id != first_tile_id {
+  //     let edge_nums = tiles.get(&tile_id).unwrap().possible_edges_as_nums();
+  //     for edge_num in edge_nums {
+  //       let mut edge_num_tiles = edge_nums_to_unassigned_tile_ids
+  //         .entry(edge_num)
+  //         .or_insert(HashSet::new());
+  //       edge_num_tiles.insert(tile_id);
+  //     }
+  //   }
+  // }
+
+  let unassigned_tile_ids = tiles
+    .keys()
+    .copied()
+    .filter(|&tile_id| tile_id != corners[0])
+    .collect::<HashSet<_>>();
+
+  backtrack_inner(tiles, init_assignment, &unassigned_cells[..], unassigned_tile_ids)
+}
+
+fn backtrack_inner(
+  tiles: &TilesMap,
+  assignment: BacktrackAssignment,
+  unassigned_cells: &[Coords],
+  unassigned_tile_ids: HashSet<u64>,
+) -> Option<BacktrackAssignment> {
+  let all_transforms = Transform::all_transforms();
+  dbg!(&assignment);
+
+  while let Some((next_cell, rest_cells)) = unassigned_cells.split_first() {
+    for &tile_id in unassigned_tile_ids.iter() {
+      let tile = tiles.get(&tile_id).unwrap();
+
+      for transform in &all_transforms {
+        if fits(tiles, &assignment, next_cell, tile, transform) {
+          dbg!(("fits: ", tile_id));
+
+          let mut candidate = assignment.clone();
+          candidate.insert(*next_cell, (tile_id, *transform));
+
+          let mut candidate_unassigned_tile_ids = unassigned_tile_ids.clone();
+          candidate_unassigned_tile_ids.remove(&tile_id);
+
+          match backtrack_inner(tiles, candidate, rest_cells, candidate_unassigned_tile_ids) {
+            Some(assignment) => return Some(assignment),
+            None => continue,
+          }
+        }
+      }
+    }
+  }
+
+  Some(assignment)
+}
+
+fn fits(tiles: &TilesMap, assignment: &BacktrackAssignment, cell: &Coords, tile: &Tile, transform: &Transform) -> bool {
+  let (row_idx, col_idx) = *cell;
+
+  if row_idx > 0 {
+    let top_tile_coords = (row_idx - 1, col_idx);
+
+    if let Some((top_tile_id, top_tile_transform)) = assignment.get(&top_tile_coords) {
+      if let Some(top_tile) = tiles.get(top_tile_id) {
+        if tile.top_edge(transform) != top_tile.bottom_edge(top_tile_transform) {
+          return false;
+        }
+      }
+    }
+  }
+
+  if col_idx > 0 {
+    let left_tile_coords = (row_idx, col_idx - 1);
+
+    if let Some((left_tile_id, left_tile_transform)) = assignment.get(&left_tile_coords) {
+      if let Some(left_tile) = tiles.get(left_tile_id) {
+        if tile.left_edge(transform) != left_tile.right_edge(left_tile_transform) {
+          return false;
+        }
+      }
+    }
+  }
+
+  true
+}
+
+fn get_neighbours(cell: Coords) -> Vec<Coords> {
+  let (row_idx, col_idx) = cell;
+  let mut neighbours = Vec::with_capacity(2);
+
+  // top neighbour
+  if row_idx > 0 {
+    neighbours.push((row_idx - 1, col_idx));
+  }
+
+  // left neighbour
+  if col_idx > 0 {
+    neighbours.push((row_idx, col_idx - 1));
+  }
+
+  neighbours
+}
 
 pub fn solve(input: &str) -> Option<Box<u64>> {
   let tiles = Tile::parse(input);
-
   let corners = get_corners(&tiles);
 
   let answer = corners.iter().product();
@@ -40,21 +152,29 @@ pub fn solve(input: &str) -> Option<Box<u64>> {
 pub fn solve2(input: &str) -> Option<Box<u64>> {
   let tiles = Tile::parse(input);
 
-  let match_counts = count_edge_match_counts(&tiles);
-  let corners = match_counts[..4]
-    .iter()
-    .copied()
-    .map(|(tile_id, _match_count)| tile_id)
-    .collect::<HashSet<_>>();
+  // TODO: needed?
+  // let match_counts = count_edge_match_counts(&tiles);
+  // let corners = match_counts[..4]
+  //   .iter()
+  //   .copied()
+  //   .map(|(tile_id, _match_count)| tile_id)
+  //   .collect::<HashSet<_>>();
+  //
+  // match min_conflicts(&tiles, 4, 50, 1_000, 2_000_000, 4, Some(0), Some(corners)) {
+  //   Some(assignment) => {
+  //     dbg!(&assignment[0..size(&tiles)]);
+  //   }
+  //   None => (),
+  // }
 
-  match min_conflicts(&tiles, 4, 50, 1_000, 2_000_000, 4, Some(0), Some(corners)) {
-    Some(assignment) => {
-      dbg!(&assignment[0..size(&tiles)]);
-    }
-    None => (),
-  }
+  let assignment = backtrack(&tiles);
+  dbg!(assignment);
 
   None
+}
+
+fn size(tiles: &TilesMap) -> usize {
+  (tiles.values().len() as f64).sqrt() as usize
 }
 
 fn get_corners(tiles: &TilesMap) -> Vec<u64> {
@@ -312,10 +432,6 @@ fn swap(assignment: &mut Assignment, this: Coords, another: Coords) {
   let (this_tile_id, this_transform) = assignment[row_id][col_id];
   assignment[row_id][col_id] = assignment[swap_row_id][swap_col_id];
   assignment[swap_row_id][swap_col_id] = (this_tile_id, this_transform);
-}
-
-fn size(tiles: &TilesMap) -> usize {
-  (tiles.values().len() as f64).sqrt() as usize
 }
 
 fn random_assignment(tiles: &TilesMap, corners: &HashSet<u64>, rng: &mut ThreadRng) -> Assignment {
