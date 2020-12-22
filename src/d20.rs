@@ -38,7 +38,7 @@ pub fn solve2(input: &str) -> Option<Box<u64>> {
     .collect::<HashSet<_>>();
 
   // FIXME: it seems that we have the same tile returned for each cell on sample input!
-  match min_conflicts(&tiles, 4, 50, 1_000, 2_000_000, 4, None, Some(corners)) {
+  match min_conflicts(&tiles, 8, 50, 1_000, 2_000_000, 4, Some(0), Some(corners)) {
     Some(assignment) => {
       dbg!(&assignment[0..size(&tiles)]);
     }
@@ -172,6 +172,8 @@ fn arrange(
   // initial random assignment
   let mut assignment = random_assignment(tiles, corners, rng);
 
+  // println!("start assignment: {:?}", &assignment);
+
   // try to improve while there are conflicts / until max moves reached.
   let mut moves = 0;
   let mut conflicts = get_all_conflicts(tiles, &assignment);
@@ -189,6 +191,11 @@ fn arrange(
 
     let local_conflicts_count = conflicted_coords.len();
 
+    // dbg!(coords);
+    // dbg!((tile_id, curr_transform));
+    // dbg!(conflicted_coords);
+    // dbg!(local_conflicts_count);
+
     let local_tabu = tabu
       .iter()
       .copied()
@@ -203,6 +210,7 @@ fn arrange(
 
     let mut possible_moves = vec![];
 
+    // println!("before transform: {:?}", &assignment);
     // try to apply all possible transforms != current transform to the current tile
     for &transform in &transforms {
       if transform != curr_transform && !local_tabu.contains(&(tile_id, transform)) {
@@ -218,6 +226,8 @@ fn arrange(
 
     // revert to the original transform
     assignment[row_id][col_id] = (tile_id, curr_transform);
+
+    // println!("after transform: {:?}", &assignment);
 
     for &another_coords in all_coords.iter() {
       let another_tile_id_and_transform = assignment[another_coords.0][another_coords.1];
@@ -237,16 +247,25 @@ fn arrange(
             (another_coords, Transform::default()),
             new_conflicts.len() + new_another_conflicts,
           ));
-
-          // revert to the original tile
-          swap(&mut assignment, (row_id, col_id), another_coords);
         }
+
+        // revert to the original tile
+        swap(&mut assignment, (row_id, col_id), another_coords);
       }
     }
+
+    // println!("after swaps: {:?}", &assignment);
+    // println!("possible_moves: {:?}", &possible_moves);
 
     // find the best move
     possible_moves.sort_by_key(|(_another_coords, conflicts_count)| *conflicts_count);
     if let Some(((another_coords, transform), _best_move_conflicts_count)) = possible_moves.pop() {
+      // println!(
+      //   "executing move: {:?} for {:?}.",
+      //   &(another_coords, transform),
+      //   &(row_id, col_id, curr_transform)
+      // );
+
       if another_coords != coords {
         swap(&mut assignment, (row_id, col_id), another_coords);
       } else {
@@ -258,6 +277,8 @@ fn arrange(
       // if still no improvements, do a random swap to break ties.
       let swap_row_id = rng.gen_range(0, size);
       let swap_col_id = rng.gen_range(0, size);
+
+      // println!("random swap with {:?}.", &(swap_row_id, swap_col_id));
 
       swap(&mut assignment, (row_id, col_id), (swap_row_id, swap_col_id));
       tabu.push_front(((row_id, col_id), assignment[row_id][col_id]));
@@ -275,12 +296,30 @@ fn arrange(
 
 /// Swaps `this` and `another` cells in `assignment`.
 fn swap(assignment: &mut Assignment, this: Coords, another: Coords) {
+  // println!("Swapping {:?} with {:?} another:", this, another);
   let (row_id, col_id) = this;
   let (swap_row_id, swap_col_id) = another;
 
   let (this_tile_id, this_transform) = assignment[row_id][col_id];
+  // println!(
+  //   "\tBefore swap:\n\t\tassignment[row_id][col_id] = {:?}",
+  //   assignment[row_id][col_id]
+  // );
+  // println!(
+  //   "\t\tassignment[swap_row_id][swap_col_id] = {:?}",
+  //   assignment[swap_row_id][swap_col_id]
+  // );
   assignment[row_id][col_id] = assignment[swap_row_id][swap_col_id];
   assignment[swap_row_id][swap_col_id] = (this_tile_id, this_transform);
+
+  // println!(
+  //   "After swap:\n\t\tassignment[row_id][col_id] = {:?}",
+  //   assignment[row_id][col_id]
+  // );
+  // println!(
+  //   "\t\tassignment[swap_row_id][swap_col_id] = {:?}",
+  //   assignment[swap_row_id][swap_col_id]
+  // );
 }
 
 fn size(tiles: &TilesMap) -> usize {
