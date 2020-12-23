@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
+use std::fs;
 
 type TilesMap = HashMap<u64, Tile>;
 type Coords = (usize, usize);
@@ -19,6 +20,8 @@ pub fn solve2(input: &str) -> Option<Box<u64>> {
 
   let assignment = backtrack(&tiles);
   // dbg!(&assignment);
+  // TODO: build & save image
+  // TODO: find the monster
 
   match assignment {
     Some(assignment) => {
@@ -31,6 +34,10 @@ pub fn solve2(input: &str) -> Option<Box<u64>> {
   }
 
   None
+}
+
+fn build_image(assignment: &BacktrackAssignment) {
+  // TODO:
 }
 
 fn backtrack(tiles: &TilesMap) -> Option<BacktrackAssignment> {
