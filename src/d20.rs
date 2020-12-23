@@ -1,4 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 use rand::seq::{SliceRandom, IteratorRandom};
 use rand::{Rng, thread_rng};
 use rand::rngs::ThreadRng;
@@ -16,60 +18,113 @@ type Coords = (usize, usize);
 type BacktrackAssignment = HashMap<Coords, (u64, Transform)>;
 
 fn backtrack(tiles: &TilesMap) -> Option<BacktrackAssignment> {
-  let corners = get_corners(tiles);
   let size = size(tiles);
+  let corner_coords = [(0, 0), (0, size - 1), (size - 1, 0), (size - 1, size - 1)]
+    .iter()
+    .copied()
+    .collect::<HashSet<_>>();
+  let corners = get_corners(tiles).into_iter().collect::<HashSet<_>>();
 
-  let mut init_assignment = HashMap::new();
-  let first_tile_id = corners[0];
-  // TODO: shall we turn it so that the edges without matches are on top and left?
-  let first_tile_transform = Transform::default();
-  let first_tile = (first_tile_id, first_tile_transform);
-  let first_coords = (0, 0);
-  init_assignment.insert(first_coords, first_tile);
+  // TODO: try the following optimizations:
+  // - turn the first tile so that the edges without matches are on top and left.
+  // - pre-filter tiles to try in backtrack_inner so that they only check tiles with possible matches on edge-nums
+  let mut edge_nums_to_tile_ids = HashMap::new();
+  let mut tile_ids_to_edge_nums = HashMap::new();
+
+  for tile_id in tiles.keys().copied() {
+    let edge_nums = tiles.get(&tile_id).unwrap().possible_edges_as_nums();
+    tile_ids_to_edge_nums.insert(tile_id, edge_nums.clone());
+
+    for edge_num in edge_nums {
+      let edge_num_tiles = edge_nums_to_tile_ids.entry(edge_num).or_insert(HashSet::new());
+      edge_num_tiles.insert(tile_id);
+    }
+  }
 
   let mut unassigned_cells = vec![];
   for row_idx in 0..size {
     for col_idx in 0..size {
-      if !(row_idx == 0 && col_idx == 0) {
-        unassigned_cells.push((row_idx, col_idx));
-      }
+      unassigned_cells.push((row_idx, col_idx));
     }
   }
 
-  // TODO: see if that's needed
-  // let mut edge_nums_to_unassigned_tile_ids = HashMap::new();
-  // for tile_id in tiles.keys().copied() {
-  //   if tile_id != first_tile_id {
-  //     let edge_nums = tiles.get(&tile_id).unwrap().possible_edges_as_nums();
-  //     for edge_num in edge_nums {
-  //       let mut edge_num_tiles = edge_nums_to_unassigned_tile_ids
-  //         .entry(edge_num)
-  //         .or_insert(HashSet::new());
-  //       edge_num_tiles.insert(tile_id);
-  //     }
-  //   }
-  // }
+  let unassigned_tile_ids = tiles.keys().copied().collect::<HashSet<_>>();
 
-  let unassigned_tile_ids = tiles
-    .keys()
-    .copied()
-    .filter(|&tile_id| tile_id != corners[0])
-    .collect::<HashSet<_>>();
+  let mut seen = HashSet::new();
 
-  backtrack_inner(tiles, init_assignment, &unassigned_cells[..], unassigned_tile_ids)
+  backtrack_inner(
+    tiles,
+    &corners,
+    &corner_coords,
+    &tile_ids_to_edge_nums,
+    &edge_nums_to_tile_ids,
+    HashMap::new(),
+    &unassigned_cells[..],
+    unassigned_tile_ids,
+    &mut seen,
+  )
 }
 
 fn backtrack_inner(
   tiles: &TilesMap,
+  corners: &HashSet<u64>,
+  corner_coords: &HashSet<Coords>,
+  tile_ids_to_edge_nums: &HashMap<u64, HashSet<u64>>,
+  edge_nums_to_tile_ids: &HashMap<u64, HashSet<u64>>,
   assignment: BacktrackAssignment,
   unassigned_cells: &[Coords],
   unassigned_tile_ids: HashSet<u64>,
+  seen: &mut HashSet<u64>,
 ) -> Option<BacktrackAssignment> {
   let all_transforms = Transform::all_transforms();
-  dbg!(&assignment);
+  // dbg!(&assignment);
+
+  std::thread::sleep_ms(250);
 
   while let Some((next_cell, rest_cells)) = unassigned_cells.split_first() {
-    for &tile_id in unassigned_tile_ids.iter() {
+    dbg!(next_cell);
+
+    let possible_tile_ids = if corner_coords.contains(next_cell) {
+      // corners has already been inferred, we just need to look at those that are not yet assigned
+      corners
+        .iter()
+        .filter(|corner_tile_id| unassigned_tile_ids.contains(corner_tile_id))
+        .collect::<Vec<_>>()
+    } else {
+      // infer all possible edges that already assigned neighbours
+      // of the cell we're looking for an assignment of have. Valid assignments should match those.
+      let matching_neighbour_edges = get_neighbours(*next_cell)
+        .iter()
+        .filter_map(|neighbour_coords| assignment.get(neighbour_coords))
+        .filter_map(|(neighbour_tile_id, _transform)| tiles.get(neighbour_tile_id))
+        .map(|tile| tile.possible_edges_as_nums())
+        .flatten()
+        .collect::<HashSet<_>>();
+
+      if matching_neighbour_edges.is_empty() {
+        // TODO: this is a fallback, I wonder if we should return None,
+        // since we seem to be guaranteed to find something in case of valid chain?
+        // unassigned_tile_ids.iter().collect::<Vec<_>>()
+        return None;
+      } else {
+        unassigned_tile_ids
+          .iter()
+          .filter(|tile_id| {
+            let tile = tiles.get(tile_id).unwrap();
+            tile
+              .possible_edges_as_nums()
+              .intersection(&matching_neighbour_edges)
+              .count()
+              > 0
+          })
+          .collect::<Vec<_>>()
+      }
+    };
+
+    dbg!(&possible_tile_ids);
+
+    for &tile_id in possible_tile_ids {
+      dbg!(tile_id);
       let tile = tiles.get(&tile_id).unwrap();
 
       for transform in &all_transforms {
@@ -79,12 +134,32 @@ fn backtrack_inner(
           let mut candidate = assignment.clone();
           candidate.insert(*next_cell, (tile_id, *transform));
 
+          let candidate_hash = hash_assignment(&candidate);
+          if seen.contains(&candidate_hash) {
+            continue;
+          }
+
           let mut candidate_unassigned_tile_ids = unassigned_tile_ids.clone();
           candidate_unassigned_tile_ids.remove(&tile_id);
 
-          match backtrack_inner(tiles, candidate, rest_cells, candidate_unassigned_tile_ids) {
+          match backtrack_inner(
+            tiles,
+            corners,
+            corner_coords,
+            tile_ids_to_edge_nums,
+            edge_nums_to_tile_ids,
+            candidate,
+            rest_cells,
+            candidate_unassigned_tile_ids,
+            seen,
+          ) {
             Some(assignment) => return Some(assignment),
-            None => continue,
+            None => {
+              // prevent looping when we arrive at the same position
+              seen.insert(candidate_hash);
+
+              continue;
+            }
           }
         }
       }
@@ -92,6 +167,17 @@ fn backtrack_inner(
   }
 
   Some(assignment)
+}
+
+fn hash_assignment(assignment: &BacktrackAssignment) -> u64 {
+  let mut hasher = DefaultHasher::new();
+
+  for (k, v) in assignment.iter() {
+    k.hash(&mut hasher);
+    v.hash(&mut hasher);
+  }
+
+  hasher.finish()
 }
 
 fn fits(tiles: &TilesMap, assignment: &BacktrackAssignment, cell: &Coords, tile: &Tile, transform: &Transform) -> bool {
@@ -168,7 +254,17 @@ pub fn solve2(input: &str) -> Option<Box<u64>> {
   // }
 
   let assignment = backtrack(&tiles);
-  dbg!(assignment);
+  dbg!(&assignment);
+
+  match assignment {
+    Some(assignment) => {
+      let coords = [(0, 0), (0, 1), (0, 2), (0, 3), (0, 4), (1, 0)];
+      for coord in coords.iter() {
+        println!("{:?}: {:?}", coord, assignment.get(coord));
+      }
+    }
+    None => (),
+  }
 
   None
 }

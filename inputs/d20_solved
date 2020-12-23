@@ -1,0 +1,1596 @@
+[src/d20.rs:257] &assignment = Some(
+    {
+        (
+            0,
+            2,
+        ): (
+            2287,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            4,
+            3,
+        ): (
+            1381,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            4,
+            6,
+        ): (
+            1181,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            10,
+            1,
+        ): (
+            3307,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            5,
+            6,
+        ): (
+            1979,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            0,
+            6,
+        ): (
+            2399,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            1,
+            2,
+        ): (
+            1567,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            6,
+            0,
+        ): (
+            3083,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            9,
+            4,
+        ): (
+            1889,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            1,
+            11,
+        ): (
+            1429,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            4,
+            5,
+        ): (
+            2137,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            11,
+            2,
+        ): (
+            3613,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            6,
+            10,
+        ): (
+            3119,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            0,
+            1,
+        ): (
+            3793,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            6,
+            11,
+        ): (
+            1051,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            9,
+            9,
+        ): (
+            1109,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            11,
+            5,
+        ): (
+            1811,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            5,
+            10,
+        ): (
+            2063,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            10,
+            7,
+        ): (
+            3169,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            3,
+            10,
+        ): (
+            1163,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            3,
+            9,
+        ): (
+            1231,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            5,
+            3,
+        ): (
+            2207,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            8,
+            0,
+        ): (
+            2749,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            8,
+            2,
+        ): (
+            2579,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            8,
+            5,
+        ): (
+            2081,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            9,
+            7,
+        ): (
+            3529,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            9,
+            10,
+        ): (
+            2393,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            2,
+            11,
+        ): (
+            3413,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            4,
+            0,
+        ): (
+            2843,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            7,
+            3,
+        ): (
+            1471,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            9,
+            0,
+        ): (
+            3319,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            3,
+            3,
+        ): (
+            1723,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            0,
+            0,
+        ): (
+            2011,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            1,
+            5,
+        ): (
+            1409,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            7,
+            1,
+        ): (
+            2833,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            2,
+            10,
+        ): (
+            2677,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            10,
+            11,
+        ): (
+            3943,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            0,
+            8,
+        ): (
+            3109,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            5,
+            11,
+        ): (
+            1367,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            6,
+            3,
+        ): (
+            1009,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            3,
+            11,
+        ): (
+            2543,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            1,
+            9,
+        ): (
+            2549,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            10,
+            5,
+        ): (
+            1559,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            11,
+            1,
+        ): (
+            2837,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            4,
+            2,
+        ): (
+            2693,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            10,
+            8,
+        ): (
+            2707,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            1,
+            8,
+        ): (
+            2417,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            2,
+            7,
+        ): (
+            2089,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            8,
+            6,
+        ): (
+            2477,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            2,
+            8,
+        ): (
+            1039,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            11,
+            0,
+        ): (
+            3433,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            7,
+            2,
+        ): (
+            1873,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            5,
+            2,
+        ): (
+            1289,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            2,
+            0,
+        ): (
+            3767,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            5,
+            8,
+        ): (
+            3583,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            10,
+            0,
+        ): (
+            1973,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            3,
+            4,
+        ): (
+            1223,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            10,
+            4,
+        ): (
+            3559,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            11,
+            10,
+        ): (
+            1013,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            4,
+            11,
+        ): (
+            2851,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            4,
+            7,
+        ): (
+            2053,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            0,
+            11,
+        ): (
+            3001,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            3,
+            6,
+        ): (
+            2909,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            6,
+            1,
+        ): (
+            1091,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            7,
+            7,
+        ): (
+            2939,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            9,
+            8,
+        ): (
+            2447,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            2,
+            9,
+        ): (
+            2143,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            11,
+            8,
+        ): (
+            3881,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            7,
+            10,
+        ): (
+            2719,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            5,
+            7,
+        ): (
+            3019,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            1,
+            1,
+        ): (
+            1583,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            11,
+            7,
+        ): (
+            3301,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            3,
+            0,
+        ): (
+            1867,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            6,
+            5,
+        ): (
+            3359,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            0,
+            4,
+        ): (
+            1997,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            2,
+            6,
+        ): (
+            1579,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            4,
+            1,
+        ): (
+            1447,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            6,
+            4,
+        ): (
+            3691,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            9,
+            11,
+        ): (
+            2917,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            1,
+            3,
+        ): (
+            2957,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            2,
+            5,
+        ): (
+            2239,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            9,
+            5,
+        ): (
+            3617,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            0,
+            9,
+        ): (
+            2111,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            1,
+            6,
+        ): (
+            2269,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            7,
+            11,
+        ): (
+            1693,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            2,
+            3,
+        ): (
+            3701,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            3,
+            5,
+        ): (
+            1511,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            6,
+            2,
+        ): (
+            3607,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            9,
+            6,
+        ): (
+            3257,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            6,
+            9,
+        ): (
+            1103,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            2,
+            2,
+        ): (
+            1789,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            0,
+            10,
+        ): (
+            1279,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            3,
+            1,
+        ): (
+            1753,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            0,
+            3,
+        ): (
+            2423,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            7,
+            6,
+        ): (
+            1097,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            8,
+            1,
+        ): (
+            3821,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            6,
+            7,
+        ): (
+            2351,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            1,
+            0,
+        ): (
+            3491,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            5,
+            1,
+        ): (
+            1901,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            2,
+            4,
+        ): (
+            2857,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            7,
+            8,
+        ): (
+            2531,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            8,
+            3,
+        ): (
+            1949,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            4,
+            10,
+        ): (
+            3877,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            8,
+            9,
+        ): (
+            2521,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            11,
+            9,
+        ): (
+            1213,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            11,
+            11,
+        ): (
+            3833,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            0,
+            7,
+        ): (
+            2099,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            10,
+            2,
+        ): (
+            1667,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            6,
+            8,
+        ): (
+            2339,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            6,
+            6,
+        ): (
+            3079,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            7,
+            0,
+        ): (
+            2801,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            8,
+            10,
+        ): (
+            1151,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            5,
+            0,
+        ): (
+            1451,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            5,
+            5,
+        ): (
+            2161,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            9,
+            1,
+        ): (
+            1087,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            3,
+            2,
+        ): (
+            1847,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            8,
+            11,
+        ): (
+            2791,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            11,
+            3,
+        ): (
+            2411,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            8,
+            4,
+        ): (
+            1999,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            3,
+            8,
+        ): (
+            3547,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            11,
+            4,
+        ): (
+            3643,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            3,
+            7,
+        ): (
+            2027,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            5,
+            9,
+        ): (
+            2633,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            10,
+            9,
+        ): (
+            2281,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            10,
+            6,
+        ): (
+            3769,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            2,
+            1,
+        ): (
+            2731,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            1,
+            10,
+        ): (
+            1063,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            4,
+            9,
+        ): (
+            3947,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            10,
+            3,
+        ): (
+            3853,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            1,
+            7,
+        ): (
+            1291,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            9,
+            2,
+        ): (
+            2273,
+            Transform {
+                rotation: 1,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            7,
+            5,
+        ): (
+            2683,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            7,
+            9,
+        ): (
+            2659,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            4,
+            8,
+        ): (
+            2221,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            7,
+            4,
+        ): (
+            3517,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            9,
+            3,
+        ): (
+            1423,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            10,
+            10,
+        ): (
+            1307,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            8,
+            7,
+        ): (
+            3217,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            5,
+            4,
+        ): (
+            1709,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            0,
+            5,
+        ): (
+            2003,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            8,
+            8,
+        ): (
+            2963,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: false,
+            },
+        ),
+        (
+            11,
+            6,
+        ): (
+            2671,
+            Transform {
+                rotation: 1,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            1,
+            4,
+        ): (
+            2557,
+            Transform {
+                rotation: 0,
+                flip_vertical: false,
+                flip_horizontal: true,
+            },
+        ),
+        (
+            4,
+            4,
+        ): (
+            2371,
+            Transform {
+                rotation: 0,
+                flip_vertical: true,
+                flip_horizontal: true,
+            },
+        ),
+    },
+)
+(0, 0): Some((2011, Transform { rotation: 0, flip_vertical: false, flip_horizontal: false }))
+(0, 1): Some((3793, Transform { rotation: 0, flip_vertical: true, flip_horizontal: true }))
+(0, 2): Some((2287, Transform { rotation: 0, flip_vertical: false, flip_horizontal: true }))
+(0, 3): Some((2423, Transform { rotation: 1, flip_vertical: true, flip_horizontal: false }))
+(0, 4): Some((1997, Transform { rotation: 1, flip_vertical: true, flip_horizontal: false }))
+(1, 0): Some((3491, Transform { rotation: 1, flip_vertical: false, flip_horizontal: true }))
+None
+Elapsed: 36.941316142s.
