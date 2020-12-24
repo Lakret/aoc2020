@@ -21,6 +21,18 @@ fn extract_answer(cups: &Ring) -> String {
   answer
 }
 
+const TOTAL_CUPS: usize = 1_000_000;
+
+/// Ring buffer is represented as array with each idx = cup label,
+/// and value under that index/label is the index/label of the next cup.
+/// `[3, 8, 9, 1, 2, 5, 4, 6, 7]` becomes
+/// `[0 => (3), 1 => 2, 2 => 5, 3 => 8, 4 => 6, 5 => 4,
+///  6 => 7, 7 => 3, 8 => 9, 9 => 1]`.
+///
+/// Allocated as global, to avoid overflowing stack in cargo test:
+/// https://stackoverflow.com/a/42960702/797544.
+static mut RING: [usize; TOTAL_CUPS + 1] = [0; TOTAL_CUPS + 1];
+
 pub fn solve2(input: &str) -> Option<Box<usize>> {
   let cups = input
     .trim_end()
@@ -28,77 +40,72 @@ pub fn solve2(input: &str) -> Option<Box<usize>> {
     .map(|ch| ch.to_string().parse::<usize>().unwrap())
     .collect::<Vec<_>>();
 
-  const TOTAL_CUPS: usize = 1_000_000;
-
-  // Ring buffer is represented as array with each idx = cup label,
-  // and value under that index/label is the index/label of the next cup.
-  // [3, 8, 9, 1, 2, 5, 4, 6, 7] becomes
-  // [0 => (3), 1 => 2, 2 => 5, 3 => 8, 4 => 6, 5 => 4,
-  //  6 => 7, 7 => 3, 8 => 9, 9 => 1]
-  let mut ring = [0; TOTAL_CUPS + 1];
-
-  // current cup label is the value of the first position
-  ring[0] = cups[0];
-  // add initial cups
-  for two_cups in cups[..].windows(2) {
-    match two_cups {
-      &[prev, next] => {
-        ring[prev] = next;
-      }
-      _ => unreachable!(),
-    }
-  }
-
-  // adds remaining cup
-  let mut prev = *cups.last().unwrap();
-  let mut next = cups.len() + 1;
-  while prev < TOTAL_CUPS {
-    ring[prev] = next;
-
-    prev = next;
-    next += 1;
-  }
-
-  // adds reference from the tail to the head
-  ring[TOTAL_CUPS] = ring[0];
-
-  for _round in 0..10_000_000 {
-    // pick up three cups
-    let pick1 = ring[ring[0]];
-    let pick2 = ring[pick1];
-    let pick3 = ring[pick2];
-
-    // pick destination
-    let mut dst = ring[0] - 1;
-    while dst == pick1 || dst == pick2 || dst == pick3 || dst == ring[0] || dst == 0 {
-      if dst == 0 {
-        dst = TOTAL_CUPS;
-      } else {
-        dst -= 1;
+  // static mut is unsafe
+  unsafe {
+    // current cup label is the value of the first position
+    RING[0] = cups[0];
+    // add initial cups
+    for two_cups in cups[..].windows(2) {
+      match two_cups {
+        &[prev, next] => {
+          RING[prev] = next;
+        }
+        _ => unreachable!(),
       }
     }
 
-    // we need to go from
-    // [ current => pick1 => pick2 => pick3 => after_pick3 ... //
-    //   ... => dst => after_dst => ... ]
-    // to
-    // [ current => after_pick3 ... //
-    //   ... => dst => pick1 => pick2 => pick3 => after_dst => ... ]
+    // adds remaining cup
+    let mut prev = *cups.last().unwrap();
+    let mut next = cups.len() + 1;
+    while prev < TOTAL_CUPS {
+      RING[prev] = next;
 
-    // redirect current to after_pick3
-    ring[ring[0]] = ring[pick3];
+      prev = next;
+      next += 1;
+    }
 
-    // place picks between dst and after_dst
-    let after_dst = ring[dst];
-    ring[dst] = pick1;
-    ring[pick3] = after_dst;
+    // adds reference from the tail to the head
+    RING[TOTAL_CUPS] = RING[0];
 
-    // select new current cup
-    ring[0] = ring[ring[0]];
+    for _round in 0..10_000_000 {
+      // pick up three cups
+      let pick1 = RING[RING[0]];
+      let pick2 = RING[pick1];
+      let pick3 = RING[pick2];
+
+      // pick destination
+      let mut dst = RING[0] - 1;
+      while dst == pick1 || dst == pick2 || dst == pick3 || dst == RING[0] || dst == 0 {
+        if dst == 0 {
+          dst = TOTAL_CUPS;
+        } else {
+          dst -= 1;
+        }
+      }
+
+      // we need to go from
+      // [ current => pick1 => pick2 => pick3 => after_pick3 ... //
+      //   ... => dst => after_dst => ... ]
+      // to
+      // [ current => after_pick3 ... //
+      //   ... => dst => pick1 => pick2 => pick3 => after_dst => ... ]
+
+      // redirect current to after_pick3
+      RING[RING[0]] = RING[pick3];
+
+      // place picks between dst and after_dst
+      let after_dst = RING[dst];
+      RING[dst] = pick1;
+      RING[pick3] = after_dst;
+
+      // select new current cup
+      RING[0] = RING[RING[0]];
+    }
+
+    let answer = RING[1] * RING[RING[1]];
+
+    Some(Box::new(answer))
   }
-
-  let answer = ring[1] * ring[ring[1]];
-  Some(Box::new(answer))
 }
 
 type Label = u32;
@@ -301,7 +308,6 @@ mod tests {
     assert_eq!(ring.current_idx, 4);
     assert_eq!(ring.current_label, 4);
 
-    // TODO:
     ring.execute_move();
     assert_eq!(ring.data, vec![9, 2, 5, 8, 4, 1, 3, 6, 7]);
     assert_eq!(ring.current_idx, 5);
