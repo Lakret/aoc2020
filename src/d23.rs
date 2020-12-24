@@ -5,7 +5,12 @@ pub fn solve(input: &str) -> Option<Box<String>> {
     cups.execute_move();
   }
 
+  Some(Box::new(extract_answer(&cups)))
+}
+
+fn extract_answer(cups: &Ring) -> String {
   let mut answer = String::new();
+
   let one_idx = cups.get_index_by_label(1);
   let mut char_idx = cups.increment_index(one_idx, 1);
   while char_idx != one_idx {
@@ -13,29 +18,52 @@ pub fn solve(input: &str) -> Option<Box<String>> {
     char_idx = cups.increment_index(char_idx, 1);
   }
 
+  answer
+}
+
+pub fn solve2(input: &str) -> Option<Box<u64>> {
+  let mut cups = Ring::parse(input);
+  cups.fill_to(1_000_000);
+
+  for move_idx in 0..10_000_000 {
+    if move_idx % 100_000 == 0 {
+      dbg!(move_idx);
+    }
+    cups.execute_move();
+  }
+
+  let one_idx = cups.get_index_by_label(1);
+  dbg!(one_idx);
+  let after_one_label = cups.data[cups.increment_index(one_idx, 1)];
+  let after_after_one_label = cups.data[cups.increment_index(one_idx, 2)];
+  dbg!(after_one_label);
+  dbg!(after_after_one_label);
+
+  let answer = (after_one_label as u64) * (after_after_one_label as u64);
   Some(Box::new(answer))
 }
 
-pub fn solve2(input: &str) -> Option<Box<usize>> {
-  None
-}
+type Label = u32;
 
 /// Ring buffer implementation for the crab cups game.
 ///
 /// Implementation relies on maintaining invariant
 /// `data[current_idx] == current_label`.
+///
+/// `fill_to` relies on `data.len() == max_label`.
 #[derive(Debug, Clone)]
 struct Ring {
-  data: Vec<u8>,
+  data: Vec<Label>,
   current_idx: usize,
-  current_label: u8,
+  current_label: Label,
   // the area where cups are moved when they are picked up
-  staging: [u8; 3],
+  staging: [Label; 3],
 }
 
 impl Ring {
   fn parse(input: &str) -> Ring {
     let data = input
+      .trim_end()
       .chars()
       .map(|ch| ch.to_string().parse().unwrap())
       .collect::<Vec<_>>();
@@ -57,10 +85,8 @@ impl Ring {
   /// - selects the next current cup.
   fn execute_move(&mut self) {
     let current_label = self.data[self.current_idx];
-    // dbg!(current_label);
 
     self.pick_up();
-    // dbg!(&self);
 
     let mut destination_label = current_label - 1;
     while self.staging.contains(&destination_label) || destination_label == current_label || destination_label == 0 {
@@ -70,18 +96,26 @@ impl Ring {
         destination_label = destination_label - 1;
       }
     }
-    // dbg!(destination_label);
 
     let destination_idx = self.get_index_by_label(destination_label);
     self.place(destination_idx);
-    // dbg!(("placed", &self));
 
     self.next_current();
-    // dbg!(self.current_idx);
+  }
+
+  /// Adds labels to the end of the current `data` buffer
+  /// increasing them until `max_label` is reached.
+  ///
+  /// Assumes and maintains that `max_label` is equal to
+  /// `self.data.len()`.
+  fn fill_to(&mut self, max_label: Label) {
+    for label in ((self.data.len() + 1) as Label)..=max_label {
+      self.data.push(label);
+    }
   }
 
   /// Returns the index of item with `label` in the `data` buffer.
-  fn get_index_by_label(&self, label: u8) -> usize {
+  fn get_index_by_label(&self, label: Label) -> usize {
     let (idx, _) = self
       .data
       .iter()
