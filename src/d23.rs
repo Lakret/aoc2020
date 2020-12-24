@@ -21,36 +21,94 @@ fn extract_answer(cups: &Ring) -> String {
   answer
 }
 
-pub fn solve2(input: &str) -> Option<Box<u64>> {
-  let mut cups = Ring::parse(input);
-  cups.fill_to(1_000_000);
+pub fn solve2(input: &str) -> Option<Box<usize>> {
+  let cups = input
+    .trim_end()
+    .chars()
+    .map(|ch| ch.to_string().parse::<usize>().unwrap())
+    .collect::<Vec<_>>();
 
-  for move_idx in 0..10_000_000 {
-    if move_idx % 100_000 == 0 {
-      dbg!(move_idx);
+  const TOTAL_CUPS: usize = 1_000_000;
+
+  // Ring buffer is represented as array with each idx = cup label,
+  // and value under that index/label is the index/label of the next cup.
+  // [3, 8, 9, 1, 2, 5, 4, 6, 7] becomes
+  // [0 => (3), 1 => 2, 2 => 5, 3 => 8, 4 => 6, 5 => 4,
+  //  6 => 7, 7 => 3, 8 => 9, 9 => 1]
+  let mut ring = [0; TOTAL_CUPS + 1];
+
+  // current cup label is the value of the first position
+  ring[0] = cups[0];
+  // add initial cups
+  for two_cups in cups[..].windows(2) {
+    match two_cups {
+      &[prev, next] => {
+        ring[prev] = next;
+      }
+      _ => unreachable!(),
     }
-    cups.execute_move();
   }
 
-  let one_idx = cups.get_index_by_label(1);
-  dbg!(one_idx);
-  let after_one_label = cups.data[cups.increment_index(one_idx, 1)];
-  let after_after_one_label = cups.data[cups.increment_index(one_idx, 2)];
-  dbg!(after_one_label);
-  dbg!(after_after_one_label);
+  // adds remaining cup
+  let mut prev = *cups.last().unwrap();
+  let mut next = cups.len() + 1;
+  while prev < TOTAL_CUPS {
+    ring[prev] = next;
 
-  let answer = (after_one_label as u64) * (after_after_one_label as u64);
+    prev = next;
+    next += 1;
+  }
+
+  // adds reference from the tail to the head
+  ring[TOTAL_CUPS] = ring[0];
+
+  for _round in 0..10_000_000 {
+    // pick up three cups
+    let pick1 = ring[ring[0]];
+    let pick2 = ring[pick1];
+    let pick3 = ring[pick2];
+
+    // pick destination
+    let mut dst = ring[0] - 1;
+    while dst == pick1 || dst == pick2 || dst == pick3 || dst == ring[0] || dst == 0 {
+      if dst == 0 {
+        dst = TOTAL_CUPS;
+      } else {
+        dst -= 1;
+      }
+    }
+
+    // we need to go from
+    // [ current => pick1 => pick2 => pick3 => after_pick3 ... //
+    //   ... => dst => after_dst => ... ]
+    // to
+    // [ current => after_pick3 ... //
+    //   ... => dst => pick1 => pick2 => pick3 => after_dst => ... ]
+
+    // redirect current to after_pick3
+    ring[ring[0]] = ring[pick3];
+
+    // place picks between dst and after_dst
+    let after_dst = ring[dst];
+    ring[dst] = pick1;
+    ring[pick3] = after_dst;
+
+    // select new current cup
+    ring[0] = ring[ring[0]];
+  }
+
+  let answer = ring[1] * ring[ring[1]];
   Some(Box::new(answer))
 }
 
 type Label = u32;
 
 /// Ring buffer implementation for the crab cups game.
+/// This is too slow for the part 2, but I decided to keep it
+/// since it has a cool example of invariant-based API / implementation.
 ///
 /// Implementation relies on maintaining invariant
 /// `data[current_idx] == current_label`.
-///
-/// `fill_to` relies on `data.len() == max_label`.
 #[derive(Debug, Clone)]
 struct Ring {
   data: Vec<Label>,
@@ -93,7 +151,7 @@ impl Ring {
       if destination_label == 0 {
         destination_label = *self.data.iter().max().unwrap();
       } else {
-        destination_label = destination_label - 1;
+        destination_label -= 1;
       }
     }
 
@@ -101,17 +159,6 @@ impl Ring {
     self.place(destination_idx);
 
     self.next_current();
-  }
-
-  /// Adds labels to the end of the current `data` buffer
-  /// increasing them until `max_label` is reached.
-  ///
-  /// Assumes and maintains that `max_label` is equal to
-  /// `self.data.len()`.
-  fn fill_to(&mut self, max_label: Label) {
-    for label in ((self.data.len() + 1) as Label)..=max_label {
-      self.data.push(label);
-    }
   }
 
   /// Returns the index of item with `label` in the `data` buffer.
@@ -295,9 +342,10 @@ mod tests {
     assert_eq!(solve(input), Some(Box::new("38756249".to_string())));
   }
 
-  // #[test]
-  // fn part_two_solved() {
-  //   let input = fs::read_to_string("inputs/d23").unwrap();
-  //   assert_eq!(solve2(&input), None);
-  // }
+  #[test]
+  fn part_two_solved() {
+    assert_eq!(solve2("389125467"), Some(Box::new(149245887792)));
+
+    assert_eq!(solve2("167248359"), Some(Box::new(21986479838)));
+  }
 }
