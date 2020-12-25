@@ -1,7 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::DefaultHasher;
 use std::hash::{Hash, Hasher};
-use std::fs;
 
 type TilesMap = HashMap<u64, Tile>;
 type Coords = (usize, usize);
@@ -15,29 +14,117 @@ pub fn solve(input: &str) -> Option<Box<u64>> {
   Some(Box::new(answer))
 }
 
-pub fn solve2(input: &str) -> Option<Box<u64>> {
+pub fn solve2(input: &str) -> Option<Box<usize>> {
   let tiles = Tile::parse(input);
 
-  let assignment = backtrack(&tiles);
-  // dbg!(&assignment);
-  // TODO: build & save image
-  // TODO: find the monster
+  let assignment = backtrack(&tiles).unwrap();
+  let image = build_image(&tiles, &assignment);
+  show_image(&image);
 
-  match assignment {
-    Some(assignment) => {
-      let coords = [(0, 0), (0, 1)];
-      for coord in coords.iter() {
-        println!("{:?}: {:?}", coord, assignment.get(coord));
-      }
-    }
-    None => (),
+  let mut monsters = vec![];
+  let mut transforms = Transform::all_transforms();
+  while monsters.is_empty() && !transforms.is_empty() {
+    let transform = transforms.pop().unwrap();
+    let image = transform.transform(&image);
+    monsters = find_monsters(&image);
+
+    // if !monsters.is_empty() {
+    //   println!("With monster:");
+    //   show_image(&image);
+    // }
   }
 
-  None
+  let monster_hashes = 15 * monsters.len();
+
+  let all_hashes: usize = image
+    .iter()
+    .map(|row| row.chars().filter(|&ch| ch == '#').count())
+    .sum();
+
+  Some(Box::new(all_hashes - monster_hashes))
 }
 
-fn build_image(assignment: &BacktrackAssignment) {
-  // TODO:
+fn find_monsters(image: &Vec<String>) -> Vec<Coords> {
+  let monster_row1 = to_match_row("000000000000000000#0");
+  let monster_row2 = to_match_row("#0000##0000##0000###");
+  let monster_row3 = to_match_row("0#00#00#00#00#00#000");
+
+  let char_map = image
+    .iter()
+    .map(|row| row.chars().collect::<Vec<_>>())
+    .collect::<Vec<_>>();
+
+  let mut monster_coords = vec![];
+
+  for row_idx in 0..(image.len() - 2) {
+    for col_idx in 0..(image.len() - 20) {
+      let row1 = &char_map[row_idx][col_idx..col_idx + 21];
+      let row2 = &char_map[row_idx + 1][col_idx..col_idx + 21];
+      let row3 = &char_map[row_idx + 2][col_idx..col_idx + 21];
+
+      if match_row(row1, &monster_row1) && match_row(row2, &monster_row2) && match_row(row3, &monster_row3) {
+        monster_coords.push((row_idx, col_idx));
+      };
+    }
+  }
+
+  monster_coords
+}
+
+fn to_match_row(row: &str) -> Vec<Option<char>> {
+  row.chars().map(|ch| if ch == '#' { Some(ch) } else { None }).collect()
+}
+
+fn match_row(row: &[char], match_row: &Vec<Option<char>>) -> bool {
+  row
+    .into_iter()
+    .zip(match_row)
+    .all(|(x, y)| y.is_none() || Some(*x) == *y)
+}
+
+fn build_image(tiles: &TilesMap, assignment: &BacktrackAssignment) -> Vec<String> {
+  let side_size = size(tiles);
+  let tile_final_side_size = 8;
+
+  let mut image_rows = vec![];
+  for image_row_idx in 0..side_size {
+    let mut image_row_rows = vec![String::new(); tile_final_side_size];
+
+    for image_col_idx in 0..side_size {
+      let (tile_id, transform) = assignment.get(&(image_row_idx, image_col_idx)).unwrap();
+      let tile = tiles.get(tile_id).unwrap();
+      let tile_rows = remove_edges(transform.transform(&tile.raw));
+
+      for (tile_row_idx, row) in tile_rows.iter().enumerate() {
+        image_row_rows[tile_row_idx].push_str(row);
+      }
+    }
+
+    image_rows.append(&mut image_row_rows);
+  }
+
+  image_rows
+}
+
+fn remove_edges(tile_rows: Vec<String>) -> Vec<String> {
+  let mut rows = vec![];
+
+  for row_idx in 1..(tile_rows.len() - 1) {
+    let row = tile_rows[row_idx]
+      .chars()
+      .skip(1)
+      .take(tile_rows.len() - 2)
+      .collect::<String>();
+    rows.push(row);
+  }
+
+  rows
+}
+
+pub fn show_image(image: &Vec<String>) {
+  for row in image.iter() {
+    println!("{}", row);
+  }
 }
 
 fn backtrack(tiles: &TilesMap) -> Option<BacktrackAssignment> {
@@ -61,7 +148,7 @@ fn backtrack(tiles: &TilesMap) -> Option<BacktrackAssignment> {
     }
   }
 
-  // preceed from the first solution we've got (see `inputs/d20_solved`)
+  // preseed from the first solution we've got (see `inputs/d20_solved`)
   let mut preseeded_assignment = HashMap::new();
   if tiles.contains_key(&2011) && tiles.contains_key(&3793) {
     preseeded_assignment.insert(
@@ -83,6 +170,32 @@ fn backtrack(tiles: &TilesMap) -> Option<BacktrackAssignment> {
           rotation: 0,
           flip_vertical: true,
           flip_horizontal: true,
+        },
+      ),
+    );
+  }
+
+  // preseed for sample
+  if tiles.contains_key(&2311) && tiles.contains_key(&1951) {
+    preseeded_assignment.insert(
+      (0, 0),
+      (
+        1951,
+        Transform {
+          rotation: 0,
+          flip_vertical: true,
+          flip_horizontal: false,
+        },
+      ),
+    );
+    preseeded_assignment.insert(
+      (0, 1),
+      (
+        2311,
+        Transform {
+          rotation: 0,
+          flip_vertical: true,
+          flip_horizontal: false,
         },
       ),
     );
@@ -405,81 +518,6 @@ impl Tile {
       self.edges[edge_id].clone()
     }
   }
-
-  fn transform(&self, transform: &Transform) -> Vec<String> {
-    let rows_rotated = match transform.rotation {
-      0 => self.raw.clone(),
-      1 => {
-        let char_vecs = self
-          .raw
-          .iter()
-          .cloned()
-          .map(|row| row.chars().collect::<Vec<_>>())
-          .collect::<Vec<_>>();
-
-        let max_idx = self.raw[0].len() - 1;
-        let mut rows = Vec::with_capacity(max_idx + 1);
-
-        for col_idx in (0..=max_idx).rev() {
-          let mut row = Vec::with_capacity(max_idx + 1);
-
-          for row_idx in 0..=max_idx {
-            row.push(char_vecs[row_idx][col_idx]);
-          }
-
-          rows.push(row.into_iter().collect::<String>());
-        }
-
-        rows
-      }
-      2 => self
-        .raw
-        .clone()
-        .into_iter()
-        .map(|row| row.chars().rev().collect::<String>())
-        .rev()
-        .collect(),
-      3 => {
-        let char_vecs = self
-          .raw
-          .iter()
-          .cloned()
-          .map(|row| row.chars().collect::<Vec<_>>())
-          .collect::<Vec<_>>();
-
-        let max_idx = self.raw[0].len() - 1;
-        let mut rows = Vec::with_capacity(max_idx + 1);
-
-        for col_idx in 0..=max_idx {
-          let mut row = Vec::with_capacity(max_idx + 1);
-
-          for row_idx in (0..=max_idx).rev() {
-            row.push(char_vecs[row_idx][col_idx]);
-          }
-
-          rows.push(row.into_iter().collect::<String>());
-        }
-
-        rows
-      }
-      _ => unreachable!(),
-    };
-
-    let rows_flipped_horizontal = if transform.flip_horizontal {
-      rows_rotated
-        .into_iter()
-        .map(|row| row.chars().rev().collect::<String>())
-        .collect::<Vec<_>>()
-    } else {
-      rows_rotated
-    };
-
-    if transform.flip_vertical {
-      rows_flipped_horizontal.into_iter().rev().collect()
-    } else {
-      rows_flipped_horizontal
-    }
-  }
 }
 
 impl Transform {
@@ -539,6 +577,78 @@ impl Transform {
       ]
     } else {
       result
+    }
+  }
+
+  fn transform(&self, image_rows: &Vec<String>) -> Vec<String> {
+    let rows_rotated = match self.rotation {
+      0 => image_rows.clone(),
+      1 => {
+        let char_vecs = image_rows
+          .iter()
+          .cloned()
+          .map(|row| row.chars().collect::<Vec<_>>())
+          .collect::<Vec<_>>();
+
+        let max_idx = image_rows[0].len() - 1;
+        let mut rows = Vec::with_capacity(max_idx + 1);
+
+        for col_idx in (0..=max_idx).rev() {
+          let mut row = Vec::with_capacity(max_idx + 1);
+
+          for row_idx in 0..=max_idx {
+            row.push(char_vecs[row_idx][col_idx]);
+          }
+
+          rows.push(row.into_iter().collect::<String>());
+        }
+
+        rows
+      }
+      2 => image_rows
+        .clone()
+        .into_iter()
+        .map(|row| row.chars().rev().collect::<String>())
+        .rev()
+        .collect(),
+      3 => {
+        let char_vecs = image_rows
+          .iter()
+          .cloned()
+          .map(|row| row.chars().collect::<Vec<_>>())
+          .collect::<Vec<_>>();
+
+        let max_idx = image_rows[0].len() - 1;
+        let mut rows = Vec::with_capacity(max_idx + 1);
+
+        for col_idx in 0..=max_idx {
+          let mut row = Vec::with_capacity(max_idx + 1);
+
+          for row_idx in (0..=max_idx).rev() {
+            row.push(char_vecs[row_idx][col_idx]);
+          }
+
+          rows.push(row.into_iter().collect::<String>());
+        }
+
+        rows
+      }
+      _ => unreachable!(),
+    };
+
+    let rows_flipped_horizontal = if self.flip_horizontal {
+      rows_rotated
+        .into_iter()
+        .map(|row| row.chars().rev().collect::<String>())
+        .collect::<Vec<_>>()
+    } else {
+      rows_rotated
+    };
+
+    if self.flip_vertical {
+      rows_flipped_horizontal.into_iter().rev().collect()
+    } else {
+      rows_flipped_horizontal
     }
   }
 }
@@ -606,30 +716,33 @@ mod tests {
     let tiles = Tile::parse(&input);
     let tile_1579 = tiles.get(&1579).unwrap();
 
-    let rotated_left = tile_1579.transform(&Transform {
+    let rotated_left = Transform {
       rotation: 1,
       flip_horizontal: false,
       flip_vertical: false,
-    });
+    }
+    .transform(&tile_1579.raw);
 
     assert_eq!(rotated_left[0], "#...##..##");
     assert_eq!(rotated_left[1], "....#..##.");
     assert_eq!(rotated_left[9], ".#.####...");
 
-    let rotated_270_and_flipped_vertical = tile_1579.transform(&Transform {
+    let rotated_270_and_flipped_vertical = Transform {
       rotation: 3,
       flip_horizontal: false,
       flip_vertical: true,
-    });
+    }
+    .transform(&tile_1579.raw);
 
     assert_eq!(rotated_270_and_flipped_vertical[0], "##..##...#");
     assert_eq!(rotated_270_and_flipped_vertical[9], "...####.#.");
 
-    let rotated_180_and_flipped_horizontal = tile_1579.transform(&Transform {
+    let rotated_180_and_flipped_horizontal = Transform {
       rotation: 2,
       flip_horizontal: true,
       flip_vertical: false,
-    });
+    }
+    .transform(&tile_1579.raw);
 
     assert_eq!(rotated_180_and_flipped_horizontal[0], "......##.#");
     assert_eq!(rotated_180_and_flipped_horizontal[9], ".#.##.#..#");
@@ -646,8 +759,7 @@ mod tests {
 
   #[test]
   fn part_two_solved() {
-    // TODO:
-    // let input = fs::read_to_string("inputs/d20").unwrap();
-    // assert_eq!(solve2(&input), None);
+    let input = fs::read_to_string("inputs/d20").unwrap();
+    assert_eq!(solve2(&input), Some(Box::new(2155)));
   }
 }
