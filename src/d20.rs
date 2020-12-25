@@ -405,6 +405,81 @@ impl Tile {
       self.edges[edge_id].clone()
     }
   }
+
+  fn transform(&self, transform: &Transform) -> Vec<String> {
+    let rows_rotated = match transform.rotation {
+      0 => self.raw.clone(),
+      1 => {
+        let char_vecs = self
+          .raw
+          .iter()
+          .cloned()
+          .map(|row| row.chars().collect::<Vec<_>>())
+          .collect::<Vec<_>>();
+
+        let max_idx = self.raw[0].len() - 1;
+        let mut rows = Vec::with_capacity(max_idx + 1);
+
+        for col_idx in (0..=max_idx).rev() {
+          let mut row = Vec::with_capacity(max_idx + 1);
+
+          for row_idx in 0..=max_idx {
+            row.push(char_vecs[row_idx][col_idx]);
+          }
+
+          rows.push(row.into_iter().collect::<String>());
+        }
+
+        rows
+      }
+      2 => self
+        .raw
+        .clone()
+        .into_iter()
+        .map(|row| row.chars().rev().collect::<String>())
+        .rev()
+        .collect(),
+      3 => {
+        let char_vecs = self
+          .raw
+          .iter()
+          .cloned()
+          .map(|row| row.chars().collect::<Vec<_>>())
+          .collect::<Vec<_>>();
+
+        let max_idx = self.raw[0].len() - 1;
+        let mut rows = Vec::with_capacity(max_idx + 1);
+
+        for col_idx in 0..=max_idx {
+          let mut row = Vec::with_capacity(max_idx + 1);
+
+          for row_idx in (0..=max_idx).rev() {
+            row.push(char_vecs[row_idx][col_idx]);
+          }
+
+          rows.push(row.into_iter().collect::<String>());
+        }
+
+        rows
+      }
+      _ => unreachable!(),
+    };
+
+    let rows_flipped_horizontal = if transform.flip_horizontal {
+      rows_rotated
+        .into_iter()
+        .map(|row| row.chars().rev().collect::<String>())
+        .collect::<Vec<_>>()
+    } else {
+      rows_rotated
+    };
+
+    if transform.flip_vertical {
+      rows_flipped_horizontal.into_iter().rev().collect()
+    } else {
+      rows_flipped_horizontal
+    }
+  }
 }
 
 impl Transform {
@@ -523,6 +598,41 @@ mod tests {
       rotate90_flip_hor_and_ver.edge_id_and_flip_map(),
       rotate270.edge_id_and_flip_map()
     );
+  }
+
+  #[test]
+  fn transform_works() {
+    let input = fs::read_to_string("inputs/d20").unwrap();
+    let tiles = Tile::parse(&input);
+    let tile_1579 = tiles.get(&1579).unwrap();
+
+    let rotated_left = tile_1579.transform(&Transform {
+      rotation: 1,
+      flip_horizontal: false,
+      flip_vertical: false,
+    });
+
+    assert_eq!(rotated_left[0], "#...##..##");
+    assert_eq!(rotated_left[1], "....#..##.");
+    assert_eq!(rotated_left[9], ".#.####...");
+
+    let rotated_270_and_flipped_vertical = tile_1579.transform(&Transform {
+      rotation: 3,
+      flip_horizontal: false,
+      flip_vertical: true,
+    });
+
+    assert_eq!(rotated_270_and_flipped_vertical[0], "##..##...#");
+    assert_eq!(rotated_270_and_flipped_vertical[9], "...####.#.");
+
+    let rotated_180_and_flipped_horizontal = tile_1579.transform(&Transform {
+      rotation: 2,
+      flip_horizontal: true,
+      flip_vertical: false,
+    });
+
+    assert_eq!(rotated_180_and_flipped_horizontal[0], "......##.#");
+    assert_eq!(rotated_180_and_flipped_horizontal[9], ".#.##.#..#");
   }
 
   #[test]
