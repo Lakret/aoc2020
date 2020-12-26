@@ -12,7 +12,6 @@ pub fn solve2(input: &str) -> Option<Box<u32>> {
   let saw = instructions
     .into_iter()
     .fold(ShipAndWaypoint::new(), execute_with_waypoint);
-  dbg!(saw);
 
   Some(Box::new((saw.ship.east.abs() + saw.ship.north.abs()) as u32))
 }

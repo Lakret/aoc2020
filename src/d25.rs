@@ -9,8 +9,8 @@ pub fn solve(input: &str) -> Option<Box<i64>> {
   Some(Box::new(answer))
 }
 
-pub fn solve2(input: &str) -> Option<Box<usize>> {
-  None
+pub fn solve2(_input: &str) -> Option<Box<String>> {
+  Some(Box::new("There's no part 2 in the last day.".to_string()))
 }
 
 fn find_encryption_key_simple(public_key1: i64, public_key2: i64) -> i64 {
@@ -21,15 +21,12 @@ fn find_encryption_key_simple(public_key1: i64, public_key2: i64) -> i64 {
     loop_size2 += 1;
     result = (result * 7) % 20201227;
   }
-  // while transform(7, loop_size2) != public_key2 {
-  //   loop_size2 += 1;
-  // }
-  dbg!(loop_size2);
 
   let candidate1 = transform(public_key1, loop_size2);
   candidate1
 }
 
+#[allow(dead_code)]
 fn find_encryption_key(public_key1: i64, public_key2: i64) -> i64 {
   let (loop_size1, loop_size2) = find_loop_sizes(public_key1, public_key2);
 
@@ -40,6 +37,7 @@ fn find_encryption_key(public_key1: i64, public_key2: i64) -> i64 {
   candidate1
 }
 
+#[allow(dead_code)]
 fn find_loop_sizes(public_key1: i64, public_key2: i64) -> (i64, i64) {
   let mut loop_size1 = 1;
   while transform(7, loop_size1) != public_key1 {
@@ -54,10 +52,11 @@ fn find_loop_sizes(public_key1: i64, public_key2: i64) -> (i64, i64) {
   (loop_size1, loop_size2)
 }
 
+#[allow(dead_code)]
 fn transform(subject: i64, loop_size: i64) -> i64 {
   let mut result = 1;
 
-  for i in 1..=loop_size {
+  for _ in 1..=loop_size {
     result = result * subject;
     result = result % 20201227;
   }
@@ -99,10 +98,4 @@ mod tests {
     let input = fs::read_to_string("inputs/d25").unwrap();
     assert_eq!(solve(&input), Some(Box::new(296776)));
   }
-
-  // #[test]
-  // fn part_two_solved() {
-  //   let input = fs::read_to_string("inputs/d25").unwrap();
-  //   assert_eq!(solve2(&input), None);
-  // }
 }

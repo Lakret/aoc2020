@@ -50,7 +50,10 @@ macro_rules! commands {
   };
 }
 
-commands!(d01, d02, d03, d04, d05, d06, d07, d08, d09, d10, d11, d12, d13, d14, d15, d16, d17, d18, d19, d20, d21, d22, d23, d24, d25);
+commands!(
+  d01, d02, d03, d04, d05, d06, d07, d08, d09, d10, d11, d12, d13, d14, d15, d16, d17, d18, d19, d20, d21, d22, d23,
+  d24, d25
+);
 
 fn main() {
   let mut rl = Editor::<()>::new();
@@ -76,7 +79,7 @@ fn main() {
 
         if &line == "all" {
           for (name, solver) in commands.iter() {
-            if !name.contains("debug") {
+            if !name.contains("debug") && name != &"d16_2" && name != &"d17_3" {
               if let Some(input_file) = solver_name_to_default_input_path(&commands, name) {
                 println!("Running {}", name);
                 run_command(solver, input_file);
